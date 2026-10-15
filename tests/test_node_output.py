@@ -15,6 +15,11 @@ def test_output_types_are_comfy_ui_type_strings():
     assert OutputTypes.LATENT == "LATENT"
 
 
+def test_output_types_format_as_their_value():
+    assert str(OutputTypes.LATENT) == "LATENT"
+    assert f"{OutputTypes.LATENT}" == "LATENT"
+
+
 def test_get_returns_comfy_ui_link():
     output = NodeOutput(
         node_id="Loader0",

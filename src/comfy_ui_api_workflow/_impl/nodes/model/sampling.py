@@ -1,9 +1,8 @@
-from typing import Any, Literal, get_args
+from typing import Literal, get_args
 
 from ..base import BaseNode, NodeOutput
 from ...enums import OutputTypes
 from ...errors.node import InvalidNodeParameterValue
-
 
 KSampler_Sampler_Names = Literal[
     "euler",
@@ -69,7 +68,6 @@ KSAMPLER_SCHEDULERS = frozenset(get_args(KSampler_Schedulers))
 
 class KSampler(BaseNode):
     __slots__ = (
-        "node_id",
         "model",
         "sampler_name",
         "scheduler",
@@ -101,7 +99,7 @@ class KSampler(BaseNode):
         super().__init__(node_id=node_id)
         self.model = model.get(output=OutputTypes.MODEL)
         self.sampler_name = sampler_name
-        self.scheuler = scheduler
+        self.scheduler = scheduler
         self.positive = positive.get(output=OutputTypes.CONDITIONING)
         self.negative = negative.get(output=OutputTypes.CONDITIONING)
         self.latent_image = latent_image.get(output=OutputTypes.LATENT)
@@ -111,23 +109,6 @@ class KSampler(BaseNode):
         self.denoise = denoise
         self.output = NodeOutput(node_id=self.node_id, outputs={OutputTypes.LATENT: 0})
         self.__validate()
-
-    def get_comfy_ui_workflow_format(self) -> dict[str, Any]:
-        return {
-                "class_type": self.__class__.__name__,
-                "inputs": {
-                    "seed": self.seed,
-                    "steps": self.steps,
-                    "cfg": self.cfg,
-                    "sampler_name": self.sampler_name,
-                    "scheduler": self.scheuler,
-                    "denoise": self.denoise,
-                    "model": self.model,
-                    "positive": self.positive,
-                    "negative": self.negative,
-                    "latent_image": self.latent_image,
-                },
-            }
 
     def __validate(self) -> None:
         self.__validate_range(
@@ -155,6 +136,8 @@ class KSampler(BaseNode):
         range_min: int | float,
         range_max: int | float,
     ) -> None:
+        if isinstance(range, bool):
+            raise InvalidNodeParameterValue(f"{name} must be a number, not bool")
         if not (range_min <= range <= range_max):
             raise InvalidNodeParameterValue(
                 f"{name} must be in closed range: [{range_min}, {range_max}]"
@@ -167,7 +150,7 @@ class KSampler(BaseNode):
             )
 
     def __validate_scheduler(self) -> None:
-        if not self.scheuler in KSAMPLER_SCHEDULERS:
+        if not self.scheduler in KSAMPLER_SCHEDULERS:
             raise InvalidNodeParameterValue(
                 f"Invalid scheduler, must be one of the following strings: {KSAMPLER_SCHEDULERS}"
             )

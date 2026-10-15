@@ -1,5 +1,4 @@
-from typing import Any
-from abc import ABC, abstractmethod
+from typing import Any, ClassVar
 
 from ..errors.output import OutputNotFoundError
 from ..enums import OutputTypes
@@ -22,10 +21,17 @@ class NodeOutput:
             raise OutputNotFoundError(error)
 
 
-class BaseNode(ABC):
+class BaseNode:
+    __slots__ = ("node_id",)
+    CATEGORY: ClassVar[str]
+
     def __init__(self, node_id: str) -> None:
         self.node_id = node_id
 
-    @abstractmethod
     def get_comfy_ui_workflow_format(self) -> dict[str, Any]:
-        pass
+        inputs = {}
+        for name in type(self).__slots__:
+            if not (name == "node_id" or name == "output"):
+                inputs[name] = getattr(self, name)
+
+        return {"class_type": self.__class__.__name__, "inputs": inputs}

@@ -7,3 +7,7 @@ class InvalidNodeParameterValue(NodeException):
 
 class NodeNotHaveOutput(NodeException):
     pass
+
+
+class NodeNotFoundError(NodeException):
+    pass
