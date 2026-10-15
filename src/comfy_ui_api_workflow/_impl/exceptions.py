@@ -16,3 +16,7 @@ class NodeException(ComfyUIAPIWorkflowException):
 
 class PipelineException(ComfyUIAPIWorkflowException):
     pass
+
+
+class OutputException(ComfyUIAPIWorkflowException):
+    pass
