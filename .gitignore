@@ -1,3 +1,9 @@
+#  Custom
+.venv
+dist
+video_wan2_2_14B_i2v.json
+incremental-dag.tdd.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "comfy-ui-api-workflow"
+dynamic = ["version"]
+description = "Run ComfyUI workflows through the ComfyUI API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["comfyui", "api", "workflow"]
+authors = [
+  { name = "Fabio Antonio Astore" },
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/fabioantonioastore/comfy-ui-api-workflow#readme"
+Issues = "https://github.com/fabioantonioastore/comfy-ui-api-workflow/issues"
+Source = "https://github.com/fabioantonioastore/comfy-ui-api-workflow"
+
+[tool.hatch.version]
+path = "src/comfy_ui_api_workflow/__about__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/comfy_ui_api_workflow"]
+
+[tool.coverage.run]
+source_pkgs = ["comfy_ui_api_workflow"]
+branch = true
+omit = [
+  "src/comfy_ui_api_workflow/__about__.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:",
+]
