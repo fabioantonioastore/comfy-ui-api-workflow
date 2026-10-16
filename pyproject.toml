@@ -36,10 +36,7 @@ Source = "https://github.com/fabioantonioastore/comfy-ui-api-workflow"
 path = "src/comfy_ui_api_workflow/__about__.py"
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "/src",
-  "/tests",
-]
+packages = ["src/comfy_ui_api_workflow"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/comfy_ui_api_workflow"]

@@ -20,21 +20,25 @@ def test_output_types_format_as_their_value():
     assert f"{OutputTypes.LATENT}" == "LATENT"
 
 
-def test_get_returns_comfy_ui_link():
-    output = NodeOutput(
-        node_id="Loader0",
-        outputs={OutputTypes.MODEL: 0, OutputTypes.CONDITIONING: 1},
-    )
+def test_output_by_name_returns_comfy_ui_link():
+    output = NodeOutput(node_id="Loader_0", outputs={"MODEL": 0, "CLIP": 1})
 
-    assert output.get(OutputTypes.MODEL) == ["Loader0", 0]
-    assert output.get(OutputTypes.CONDITIONING) == ["Loader0", 1]
+    assert output["MODEL"] == ("Loader_0", 0)
+    assert output["CLIP"] == ("Loader_0", 1)
 
 
-def test_get_missing_output_raises_output_not_found():
-    output = NodeOutput(node_id="Loader0", outputs={OutputTypes.MODEL: 0})
+def test_outputs_of_the_same_type_are_told_apart_by_name():
+    output = NodeOutput(node_id="ControlNet_0", outputs={"positive": 0, "negative": 1})
 
-    with pytest.raises(OutputNotFoundError):
-        output.get(OutputTypes.LATENT)
+    assert output["positive"] == ("ControlNet_0", 0)
+    assert output["negative"] == ("ControlNet_0", 1)
+
+
+def test_missing_output_raises_output_not_found_naming_node_and_output():
+    output = NodeOutput(node_id="Loader_0", outputs={"MODEL": 0})
+
+    with pytest.raises(OutputNotFoundError, match=r"Loader_0.*LATENT"):
+        output["LATENT"]
 
 
 def test_output_not_found_is_library_exception():
