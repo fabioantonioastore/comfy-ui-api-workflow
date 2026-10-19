@@ -118,8 +118,8 @@ def _is_dynamic(spec):
 
 STATIC_NODES = sorted(name for name, spec in SPECS.items() if not _is_dynamic(spec))
 DYNAMIC_NODES = sorted(set(SPECS) - set(STATIC_NODES))
-# Dynamic nodes with a class, whose dotted inputs became plain attributes.
-IMPLEMENTED_DYNAMIC_NODES = ["ComfyMathExpression", "SaveVideo"]
+# Every dynamic node has a class, whose dotted inputs became plain attributes.
+IMPLEMENTED_DYNAMIC_NODES = DYNAMIC_NODES
 
 
 def _import_all(package):
@@ -225,12 +225,10 @@ def test_classes_exist_only_for_static_and_implemented_dynamic_nodes():
     assert sorted(set(NODE_CLASSES) - set(STATIC_NODES)) == IMPLEMENTED_DYNAMIC_NODES
 
 
-def test_nodes_with_dynamic_inputs_are_left_for_the_next_round():
-    pending = [name for name in DYNAMIC_NODES if name not in IMPLEMENTED_DYNAMIC_NODES]
-    pytest.skip(
-        f"{len(pending)} nodes with dynamic V3 inputs are not implemented "
-        f"yet: {', '.join(pending)}"
-    )
+def test_every_dynamic_node_has_exactly_one_class():
+    missing = [name for name in DYNAMIC_NODES if name not in NODE_CLASSES]
+
+    assert missing == []
 
 
 @pytest.mark.parametrize("node_name", STATIC_NODES + IMPLEMENTED_DYNAMIC_NODES)

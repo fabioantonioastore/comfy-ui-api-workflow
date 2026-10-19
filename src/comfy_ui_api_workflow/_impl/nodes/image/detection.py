@@ -1,4 +1,8 @@
-from typing import Literal, get_args
+from typing import (
+    Literal,
+    get_args,
+    Any,
+)
 
 from ..base import BaseNode
 from ..validation import (
@@ -7,6 +11,7 @@ from ..validation import (
     validate_not_empty,
     validate_range,
 )
+from ..dynamic import Choice, Combo, DynamicInputs, Flag, Number, validate_dynamic
 
 
 class SDPoseKeypointExtractor(BaseNode):
@@ -687,3 +692,445 @@ class SAM3DBody_Smooth(BaseNode):
         validate_range(
             "rotation_threshold_degrees", self.rotation_threshold_degrees, 0.0, 90.0
         )
+
+
+MediaPipeFaceMask_Regions = Literal["all", "custom"]
+
+
+class MediaPipeFaceMask(DynamicInputs, BaseNode):
+    __slots__ = (
+        "face_landmarks",
+        "regions",
+        "regions_face_oval",
+        "regions_lips",
+        "regions_left_eye",
+        "regions_right_eye",
+        "regions_irises",
+    )
+    CATEGORY = "image/detection"
+    OUTPUTS = {"MASK": 0}
+    RETURN_TYPES = ("MASK",)
+    INPUT_NAMES = {
+        "regions_face_oval": "regions.face_oval",
+        "regions_lips": "regions.lips",
+        "regions_left_eye": "regions.left_eye",
+        "regions_right_eye": "regions.right_eye",
+        "regions_irises": "regions.irises",
+    }
+    INPUT_SOCKET_TYPES = {
+        "face_landmarks": "FACE_LANDMARKS",
+        "regions": "COMFY_DYNAMICCOMBO_V3",
+        "regions_face_oval": "BOOLEAN",
+        "regions_lips": "BOOLEAN",
+        "regions_left_eye": "BOOLEAN",
+        "regions_right_eye": "BOOLEAN",
+        "regions_irises": "BOOLEAN",
+    }
+    DYNAMIC_INPUTS = {
+        "regions": Combo(
+            {
+                "all": {},
+                "custom": {
+                    "regions_face_oval": Flag(default=True),
+                    "regions_lips": Flag(default=False),
+                    "regions_left_eye": Flag(default=False),
+                    "regions_right_eye": Flag(default=False),
+                    "regions_irises": Flag(default=False),
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        face_landmarks: tuple[str, int],
+        regions: MediaPipeFaceMask_Regions = "all",
+        regions_face_oval: bool | tuple[str, int] | None = None,
+        regions_lips: bool | tuple[str, int] | None = None,
+        regions_left_eye: bool | tuple[str, int] | None = None,
+        regions_right_eye: bool | tuple[str, int] | None = None,
+        regions_irises: bool | tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.face_landmarks = face_landmarks
+        self.regions = regions
+        if regions_face_oval is not None:
+            self.regions_face_oval = regions_face_oval
+        if regions_lips is not None:
+            self.regions_lips = regions_lips
+        if regions_left_eye is not None:
+            self.regions_left_eye = regions_left_eye
+        if regions_right_eye is not None:
+            self.regions_right_eye = regions_right_eye
+        if regions_irises is not None:
+            self.regions_irises = regions_irises
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_dynamic(self)
+
+
+MediaPipeFaceMeshVisualize_Connections = Literal["all", "fill", "custom"]
+
+
+class MediaPipeFaceMeshVisualize(DynamicInputs, BaseNode):
+    __slots__ = (
+        "face_landmarks",
+        "connections",
+        "connections_face_oval",
+        "connections_lips",
+        "connections_left_eye",
+        "connections_right_eye",
+        "connections_left_eyebrow",
+        "connections_right_eyebrow",
+        "connections_irises",
+        "connections_nose",
+        "connections_tesselation",
+        "color",
+        "thickness",
+        "point_size",
+        "image",
+    )
+    CATEGORY = "image/detection"
+    OUTPUTS = {"IMAGE": 0}
+    RETURN_TYPES = ("IMAGE",)
+    INPUT_NAMES = {
+        "connections_face_oval": "connections.face_oval",
+        "connections_lips": "connections.lips",
+        "connections_left_eye": "connections.left_eye",
+        "connections_right_eye": "connections.right_eye",
+        "connections_left_eyebrow": "connections.left_eyebrow",
+        "connections_right_eyebrow": "connections.right_eyebrow",
+        "connections_irises": "connections.irises",
+        "connections_nose": "connections.nose",
+        "connections_tesselation": "connections.tesselation",
+    }
+    INPUT_SOCKET_TYPES = {
+        "face_landmarks": "FACE_LANDMARKS",
+        "connections": "COMFY_DYNAMICCOMBO_V3",
+        "connections_face_oval": "BOOLEAN",
+        "connections_lips": "BOOLEAN",
+        "connections_left_eye": "BOOLEAN",
+        "connections_right_eye": "BOOLEAN",
+        "connections_left_eyebrow": "BOOLEAN",
+        "connections_right_eyebrow": "BOOLEAN",
+        "connections_irises": "BOOLEAN",
+        "connections_nose": "BOOLEAN",
+        "connections_tesselation": "BOOLEAN",
+        "color": "COLOR",
+        "thickness": "INT",
+        "point_size": "INT",
+        "image": "IMAGE",
+    }
+    DYNAMIC_INPUTS = {
+        "connections": Combo(
+            {
+                "all": {},
+                "fill": {},
+                "custom": {
+                    "connections_face_oval": Flag(default=True),
+                    "connections_lips": Flag(default=True),
+                    "connections_left_eye": Flag(default=True),
+                    "connections_right_eye": Flag(default=True),
+                    "connections_left_eyebrow": Flag(default=True),
+                    "connections_right_eyebrow": Flag(default=True),
+                    "connections_irises": Flag(default=True),
+                    "connections_nose": Flag(default=True),
+                    "connections_tesselation": Flag(default=False),
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        face_landmarks: tuple[str, int],
+        connections: MediaPipeFaceMeshVisualize_Connections = "all",
+        connections_face_oval: bool | tuple[str, int] | None = None,
+        connections_lips: bool | tuple[str, int] | None = None,
+        connections_left_eye: bool | tuple[str, int] | None = None,
+        connections_right_eye: bool | tuple[str, int] | None = None,
+        connections_left_eyebrow: bool | tuple[str, int] | None = None,
+        connections_right_eyebrow: bool | tuple[str, int] | None = None,
+        connections_irises: bool | tuple[str, int] | None = None,
+        connections_nose: bool | tuple[str, int] | None = None,
+        connections_tesselation: bool | tuple[str, int] | None = None,
+        color: Any = "#00ff00",
+        thickness: int | tuple[str, int] = 1,
+        point_size: int | tuple[str, int] = 2,
+        image: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.face_landmarks = face_landmarks
+        self.connections = connections
+        if connections_face_oval is not None:
+            self.connections_face_oval = connections_face_oval
+        if connections_lips is not None:
+            self.connections_lips = connections_lips
+        if connections_left_eye is not None:
+            self.connections_left_eye = connections_left_eye
+        if connections_right_eye is not None:
+            self.connections_right_eye = connections_right_eye
+        if connections_left_eyebrow is not None:
+            self.connections_left_eyebrow = connections_left_eyebrow
+        if connections_right_eyebrow is not None:
+            self.connections_right_eyebrow = connections_right_eyebrow
+        if connections_irises is not None:
+            self.connections_irises = connections_irises
+        if connections_nose is not None:
+            self.connections_nose = connections_nose
+        if connections_tesselation is not None:
+            self.connections_tesselation = connections_tesselation
+        self.color = color
+        self.thickness = thickness
+        self.point_size = point_size
+        if image is not None:
+            self.image = image
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_range("thickness", self.thickness, 0, 8)
+        validate_range("point_size", self.point_size, 0, 16)
+        validate_dynamic(self)
+
+
+SAM3DBody_Render_Render_Styles = Literal[
+    "mesh", "silhouette", "openpose_2d", "openpose_3d", "scail"
+]
+
+
+SAM3DBody_Render_Render_Style_Shaders = Literal[
+    "default",
+    "normals",
+    "rainbow",
+    "rainbow_face_normal",
+    "rainbow_face_semantic",
+    "depth",
+]
+
+
+SAM3DBody_Render_Render_Style_Regions = Literal["full_body", "hands_only"]
+
+
+SAM3DBody_Render_Render_Style_Face_Styles = Literal["disabled", "full", "eyes_mouth"]
+
+
+SAM3DBody_Render_Render_Style_Hand_Styles = Literal["disabled", "dwpose", "openpose"]
+
+
+class SAM3DBody_Render(DynamicInputs, BaseNode):
+    __slots__ = (
+        "pose_data",
+        "width",
+        "height",
+        "render_style",
+        "render_style_shader",
+        "render_style_shader_rainbow_tilt_z",
+        "render_style_shader_rainbow_tilt_x",
+        "render_style_opacity",
+        "render_style_person_palette_falloff",
+        "render_style_region",
+        "render_style_marker_radius_px",
+        "render_style_stick_width_px",
+        "render_style_limb_alpha",
+        "render_style_face_style",
+        "render_style_hand_style",
+        "render_style_radius_m",
+        "render_style_include_hands",
+        "background",
+        "camera_info",
+    )
+    CATEGORY = "image/detection"
+    OUTPUTS = {"image": 0}
+    RETURN_TYPES = ("IMAGE",)
+    INPUT_NAMES = {
+        "render_style_shader": "render_style.shader",
+        "render_style_shader_rainbow_tilt_z": "render_style.shader.rainbow_tilt_z",
+        "render_style_shader_rainbow_tilt_x": "render_style.shader.rainbow_tilt_x",
+        "render_style_opacity": "render_style.opacity",
+        "render_style_person_palette_falloff": "render_style.person_palette_falloff",
+        "render_style_region": "render_style.region",
+        "render_style_marker_radius_px": "render_style.marker_radius_px",
+        "render_style_stick_width_px": "render_style.stick_width_px",
+        "render_style_limb_alpha": "render_style.limb_alpha",
+        "render_style_face_style": "render_style.face_style",
+        "render_style_hand_style": "render_style.hand_style",
+        "render_style_radius_m": "render_style.radius_m",
+        "render_style_include_hands": "render_style.include_hands",
+    }
+    INPUT_SOCKET_TYPES = {
+        "pose_data": "MHR_POSE_DATA,KIMODO_POSE_DATA",
+        "width": "INT",
+        "height": "INT",
+        "render_style": "COMFY_DYNAMICCOMBO_V3",
+        "render_style_shader": "COMFY_DYNAMICCOMBO_V3",
+        "render_style_shader_rainbow_tilt_z": "FLOAT",
+        "render_style_shader_rainbow_tilt_x": "FLOAT",
+        "render_style_opacity": "FLOAT",
+        "render_style_person_palette_falloff": "FLOAT",
+        "render_style_region": "COMBO",
+        "render_style_marker_radius_px": "INT",
+        "render_style_stick_width_px": "INT",
+        "render_style_limb_alpha": "FLOAT",
+        "render_style_face_style": "COMBO",
+        "render_style_hand_style": "COMBO",
+        "render_style_radius_m": "FLOAT",
+        "render_style_include_hands": "BOOLEAN",
+        "background": "IMAGE",
+        "camera_info": "LOAD3D_CAMERA",
+    }
+    DYNAMIC_INPUTS = {
+        "render_style": Combo(
+            {
+                "mesh": {
+                    "render_style_shader": Combo(
+                        {
+                            "default": {},
+                            "normals": {},
+                            "rainbow": {
+                                "render_style_shader_rainbow_tilt_z": Number(
+                                    default=-35.0, low=-90.0, high=90.0
+                                ),
+                                "render_style_shader_rainbow_tilt_x": Number(
+                                    default=0.0, low=-90.0, high=90.0
+                                ),
+                            },
+                            "rainbow_face_normal": {
+                                "render_style_shader_rainbow_tilt_z": Number(
+                                    default=-35.0, low=-90.0, high=90.0
+                                ),
+                                "render_style_shader_rainbow_tilt_x": Number(
+                                    default=0.0, low=-90.0, high=90.0
+                                ),
+                            },
+                            "rainbow_face_semantic": {
+                                "render_style_shader_rainbow_tilt_z": Number(
+                                    default=-35.0, low=-90.0, high=90.0
+                                ),
+                                "render_style_shader_rainbow_tilt_x": Number(
+                                    default=0.0, low=-90.0, high=90.0
+                                ),
+                            },
+                            "depth": {},
+                        }
+                    ),
+                    "render_style_opacity": Number(default=1.0, low=0.0, high=1.0),
+                    "render_style_person_palette_falloff": Number(
+                        default=0.6, low=0.1, high=1.0
+                    ),
+                    "render_style_region": Choice(
+                        ("full_body", "hands_only"), default="full_body"
+                    ),
+                },
+                "silhouette": {},
+                "openpose_2d": {
+                    "render_style_marker_radius_px": Number(default=4, low=1, high=32),
+                    "render_style_stick_width_px": Number(default=4, low=1, high=32),
+                    "render_style_limb_alpha": Number(default=0.6, low=0.0, high=1.0),
+                    "render_style_face_style": Choice(
+                        ("disabled", "full", "eyes_mouth"), default="disabled"
+                    ),
+                    "render_style_hand_style": Choice(
+                        ("disabled", "dwpose", "openpose"), default="disabled"
+                    ),
+                    "render_style_person_palette_falloff": Number(
+                        default=0.6, low=0.1, high=1.0
+                    ),
+                },
+                "openpose_3d": {
+                    "render_style_radius_m": Number(default=0.015, low=0.004, high=0.1),
+                    "render_style_include_hands": Flag(default=True),
+                    "render_style_person_palette_falloff": Number(
+                        default=0.6, low=0.1, high=1.0
+                    ),
+                },
+                "scail": {
+                    "render_style_radius_m": Number(default=0.022, low=0.005, high=0.2),
+                    "render_style_hand_style": Choice(
+                        ("disabled", "dwpose", "openpose"), default="dwpose"
+                    ),
+                    "render_style_face_style": Choice(
+                        ("disabled", "full", "eyes_mouth"), default="disabled"
+                    ),
+                    "render_style_person_palette_falloff": Number(
+                        default=0.6, low=0.1, high=1.0
+                    ),
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        pose_data: tuple[str, int],
+        width: int | tuple[str, int] = 0,
+        height: int | tuple[str, int] = 0,
+        render_style: SAM3DBody_Render_Render_Styles = "mesh",
+        render_style_shader: SAM3DBody_Render_Render_Style_Shaders | None = None,
+        render_style_shader_rainbow_tilt_z: float | tuple[str, int] | None = None,
+        render_style_shader_rainbow_tilt_x: float | tuple[str, int] | None = None,
+        render_style_opacity: float | tuple[str, int] | None = None,
+        render_style_person_palette_falloff: float | tuple[str, int] | None = None,
+        render_style_region: (
+            SAM3DBody_Render_Render_Style_Regions | tuple[str, int] | None
+        ) = None,
+        render_style_marker_radius_px: int | tuple[str, int] | None = None,
+        render_style_stick_width_px: int | tuple[str, int] | None = None,
+        render_style_limb_alpha: float | tuple[str, int] | None = None,
+        render_style_face_style: (
+            SAM3DBody_Render_Render_Style_Face_Styles | tuple[str, int] | None
+        ) = None,
+        render_style_hand_style: (
+            SAM3DBody_Render_Render_Style_Hand_Styles | tuple[str, int] | None
+        ) = None,
+        render_style_radius_m: float | tuple[str, int] | None = None,
+        render_style_include_hands: bool | tuple[str, int] | None = None,
+        background: tuple[str, int] | None = None,
+        camera_info: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.pose_data = pose_data
+        self.width = width
+        self.height = height
+        self.render_style = render_style
+        if render_style_shader is not None:
+            self.render_style_shader = render_style_shader
+        if render_style_shader_rainbow_tilt_z is not None:
+            self.render_style_shader_rainbow_tilt_z = render_style_shader_rainbow_tilt_z
+        if render_style_shader_rainbow_tilt_x is not None:
+            self.render_style_shader_rainbow_tilt_x = render_style_shader_rainbow_tilt_x
+        if render_style_opacity is not None:
+            self.render_style_opacity = render_style_opacity
+        if render_style_person_palette_falloff is not None:
+            self.render_style_person_palette_falloff = (
+                render_style_person_palette_falloff
+            )
+        if render_style_region is not None:
+            self.render_style_region = render_style_region
+        if render_style_marker_radius_px is not None:
+            self.render_style_marker_radius_px = render_style_marker_radius_px
+        if render_style_stick_width_px is not None:
+            self.render_style_stick_width_px = render_style_stick_width_px
+        if render_style_limb_alpha is not None:
+            self.render_style_limb_alpha = render_style_limb_alpha
+        if render_style_face_style is not None:
+            self.render_style_face_style = render_style_face_style
+        if render_style_hand_style is not None:
+            self.render_style_hand_style = render_style_hand_style
+        if render_style_radius_m is not None:
+            self.render_style_radius_m = render_style_radius_m
+        if render_style_include_hands is not None:
+            self.render_style_include_hands = render_style_include_hands
+        if background is not None:
+            self.background = background
+        if camera_info is not None:
+            self.camera_info = camera_info
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_range("width", self.width, 0, 16384)
+        validate_range("height", self.height, 0, 16384)
+        validate_dynamic(self)

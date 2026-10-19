@@ -8,6 +8,7 @@ from ..validation import (
     validate_range,
 )
 from ...lazy import submodules_of
+from ..dynamic import Choice, Combo, DynamicInputs, Number, validate_dynamic
 
 
 class SaveImage(BaseNode):
@@ -596,6 +597,140 @@ class SaveImageWebsocket(BaseNode):
     def __init__(self, node_id: str, images: tuple[str, int]) -> None:
         super().__init__(node_id=node_id)
         self.images = images
+
+
+SaveImageAdvanced_Formats = Literal["png", "exr", "avif"]
+
+
+SaveImageAdvanced_Format_Bit_Depths = Literal[
+    "8-bit",
+    "16-bit",
+    "32-bit float",
+    "16-bit float",
+    "auto",
+    "8-bit YUV420",
+    "10-bit YUV420",
+]
+
+
+SaveImageAdvanced_Format_Input_Color_Spaces = Literal["sRGB", "HDR", "linear", "HDR PQ"]
+
+
+SaveImageAdvanced_Format_Save_Modes = Literal["still images", "animated"]
+
+
+class SaveImageAdvanced(DynamicInputs, BaseNode):
+    __slots__ = (
+        "images",
+        "filename_prefix",
+        "format",
+        "format_bit_depth",
+        "format_input_color_space",
+        "format_crf",
+        "format_save_mode",
+        "format_save_mode_fps",
+        "format_save_mode_loop_count",
+    )
+    CATEGORY = "image"
+    OUTPUTS = {"images": 0}
+    RETURN_TYPES = ("IMAGE",)
+    INPUT_NAMES = {
+        "format_bit_depth": "format.bit_depth",
+        "format_input_color_space": "format.input_color_space",
+        "format_crf": "format.crf",
+        "format_save_mode": "format.save_mode",
+        "format_save_mode_fps": "format.save_mode.fps",
+        "format_save_mode_loop_count": "format.save_mode.loop_count",
+    }
+    INPUT_SOCKET_TYPES = {
+        "images": "IMAGE",
+        "filename_prefix": "STRING",
+        "format": "COMFY_DYNAMICCOMBO_V3",
+        "format_bit_depth": "COMBO",
+        "format_input_color_space": "COMBO",
+        "format_crf": "INT",
+        "format_save_mode": "COMFY_DYNAMICCOMBO_V3",
+        "format_save_mode_fps": "FLOAT",
+        "format_save_mode_loop_count": "INT",
+    }
+    DYNAMIC_INPUTS = {
+        "format": Combo(
+            {
+                "png": {
+                    "format_bit_depth": Choice(("8-bit", "16-bit"), default="8-bit"),
+                    "format_input_color_space": Choice(("sRGB",), default="sRGB"),
+                },
+                "exr": {
+                    "format_bit_depth": Choice(
+                        ("32-bit float", "16-bit float"), default="16-bit float"
+                    ),
+                    "format_input_color_space": Choice(
+                        ("sRGB", "HDR", "linear"), default="sRGB"
+                    ),
+                },
+                "avif": {
+                    "format_bit_depth": Choice(
+                        ("auto", "8-bit YUV420", "10-bit YUV420"), default="auto"
+                    ),
+                    "format_input_color_space": Choice(
+                        ("sRGB", "HDR", "HDR PQ"), default="sRGB"
+                    ),
+                    "format_crf": Number(default=18, low=1, high=63),
+                    "format_save_mode": Combo(
+                        {
+                            "still images": {},
+                            "animated": {
+                                "format_save_mode_fps": Number(
+                                    default=6.0, low=0.01, high=1000.0
+                                ),
+                                "format_save_mode_loop_count": Number(
+                                    default=0, low=0, high=1000
+                                ),
+                            },
+                        }
+                    ),
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        images: tuple[str, int],
+        filename_prefix: str | tuple[str, int] = "ComfyUI",
+        format: SaveImageAdvanced_Formats = "png",
+        format_bit_depth: (
+            SaveImageAdvanced_Format_Bit_Depths | tuple[str, int] | None
+        ) = None,
+        format_input_color_space: (
+            SaveImageAdvanced_Format_Input_Color_Spaces | tuple[str, int] | None
+        ) = None,
+        format_crf: int | tuple[str, int] | None = None,
+        format_save_mode: SaveImageAdvanced_Format_Save_Modes | None = None,
+        format_save_mode_fps: float | tuple[str, int] | None = None,
+        format_save_mode_loop_count: int | tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.images = images
+        self.filename_prefix = filename_prefix
+        self.format = format
+        if format_bit_depth is not None:
+            self.format_bit_depth = format_bit_depth
+        if format_input_color_space is not None:
+            self.format_input_color_space = format_input_color_space
+        if format_crf is not None:
+            self.format_crf = format_crf
+        if format_save_mode is not None:
+            self.format_save_mode = format_save_mode
+        if format_save_mode_fps is not None:
+            self.format_save_mode_fps = format_save_mode_fps
+        if format_save_mode_loop_count is not None:
+            self.format_save_mode_loop_count = format_save_mode_loop_count
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_dynamic(self)
 
 
 __getattr__ = submodules_of(__name__)

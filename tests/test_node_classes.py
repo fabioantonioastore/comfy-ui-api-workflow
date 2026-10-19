@@ -28,6 +28,23 @@ WHOLE_TREE = {
 }
 
 
+def branch_inputs(node_type):
+    # Inputs of dynamic combo branches and group rows can't all be set at
+    # once; test_dynamic_object_info_nodes.py goes through them branch by branch.
+    found = set()
+    for name, spec in getattr(node_type, "DYNAMIC_INPUTS", {}).items():
+        found.add(name)
+        if hasattr(spec, "attributes"):
+            found |= spec.attributes()
+        else:
+            found |= {
+                spec.attribute(name, row, field)
+                for row in range(spec.rows)
+                for field in spec.fields
+            }
+    return found
+
+
 def parameters(node_type):
     return [
         parameter
@@ -84,7 +101,8 @@ def test_every_input_that_takes_a_link_is_sent_as_one(node_type):
     linked = {
         parameter.name: LINK
         for parameter in parameters(node_type)
-        if accepts_link(parameter.annotation) or parameter.annotation is Any
+        if (accepts_link(parameter.annotation) or parameter.annotation is Any)
+        and parameter.name not in branch_inputs(node_type)
     }
 
     node = build(node_type, **WHOLE_TREE.get(node_type.CLASS_TYPE, {}), **linked)
@@ -104,6 +122,7 @@ COMBO_INPUTS = [
     for parameter in parameters(node_type)
     if choices(parameter.annotation)
     and (node_type.CLASS_TYPE, parameter.name) not in DEPENDENT_COMBOS
+    and parameter.name not in branch_inputs(node_type)
 ]
 
 

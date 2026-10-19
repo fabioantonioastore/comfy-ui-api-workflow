@@ -2,6 +2,7 @@ from typing import Any, Literal, get_args
 
 from .base import BaseNode
 from .validation import validate_choice, validate_not_empty, validate_range
+from .dynamic import Choice, Combo, DynamicInputs, validate_dynamic
 
 
 class LoadAudio(BaseNode):
@@ -258,3 +259,62 @@ class AudioEqualizer3Band(BaseNode):
         validate_range("mid_q", self.mid_q, 0.1, 10.0)
         validate_range("high_gain_dB", self.high_gain_dB, -24.0, 24.0)
         validate_range("high_freq", self.high_freq, 1000, 15_000)
+
+
+SaveAudioAdvanced_Formats = Literal["flac", "mp3", "opus"]
+
+
+SaveAudioAdvanced_Format_Qualitys = Literal["V0", "128k", "320k", "64k", "96k", "192k"]
+
+
+class SaveAudioAdvanced(DynamicInputs, BaseNode):
+    __slots__ = (
+        "audio",
+        "filename_prefix",
+        "format",
+        "format_quality",
+    )
+    CATEGORY = "audio"
+    OUTPUTS = {"audio": 0}
+    RETURN_TYPES = ("AUDIO",)
+    INPUT_NAMES = {"format_quality": "format.quality"}
+    INPUT_SOCKET_TYPES = {
+        "audio": "AUDIO",
+        "filename_prefix": "STRING",
+        "format": "COMFY_DYNAMICCOMBO_V3",
+        "format_quality": "COMBO",
+    }
+    DYNAMIC_INPUTS = {
+        "format": Combo(
+            {
+                "flac": {},
+                "mp3": {"format_quality": Choice(("V0", "128k", "320k"), default="V0")},
+                "opus": {
+                    "format_quality": Choice(
+                        ("64k", "96k", "128k", "192k", "320k"), default="128k"
+                    )
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        audio: tuple[str, int],
+        filename_prefix: str | tuple[str, int] = "audio/ComfyUI",
+        format: SaveAudioAdvanced_Formats = "flac",
+        format_quality: (
+            SaveAudioAdvanced_Format_Qualitys | tuple[str, int] | None
+        ) = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.audio = audio
+        self.filename_prefix = filename_prefix
+        self.format = format
+        if format_quality is not None:
+            self.format_quality = format_quality
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_dynamic(self)

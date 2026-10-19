@@ -260,3 +260,211 @@ class SplatToMesh(BaseNode):
         validate_range("min_component", self.min_component, 0, 100_000)
         validate_range("min_opacity", self.min_opacity, 0.0, 1.0)
         validate_range("color_sharpen", self.color_sharpen, 1.0, 8.0)
+
+
+class MergeSplat(BaseNode):
+    __slots__ = (
+        "splats_splat0",
+        "splats_splat1",
+        "splats_splat2",
+        "splats_splat3",
+        "splats_splat4",
+        "splats_splat5",
+        "splats_splat6",
+        "splats_splat7",
+        "splats_splat8",
+        "splats_splat9",
+        "splats_splat10",
+        "splats_splat11",
+        "splats_splat12",
+        "splats_splat13",
+        "splats_splat14",
+        "splats_splat15",
+        "splats_splat16",
+        "splats_splat17",
+        "splats_splat18",
+        "splats_splat19",
+        "splats_splat20",
+        "splats_splat21",
+        "splats_splat22",
+        "splats_splat23",
+        "splats_splat24",
+        "splats_splat25",
+        "splats_splat26",
+        "splats_splat27",
+        "splats_splat28",
+        "splats_splat29",
+        "splats_splat30",
+        "splats_splat31",
+    )
+    CATEGORY = "3d/splat"
+    OUTPUTS = {"splat": 0}
+    RETURN_TYPES = ("SPLAT",)
+    INPUT_NAMES = {
+        "splats_splat0": "splats.splat0",
+        "splats_splat1": "splats.splat1",
+        "splats_splat2": "splats.splat2",
+        "splats_splat3": "splats.splat3",
+        "splats_splat4": "splats.splat4",
+        "splats_splat5": "splats.splat5",
+        "splats_splat6": "splats.splat6",
+        "splats_splat7": "splats.splat7",
+        "splats_splat8": "splats.splat8",
+        "splats_splat9": "splats.splat9",
+        "splats_splat10": "splats.splat10",
+        "splats_splat11": "splats.splat11",
+        "splats_splat12": "splats.splat12",
+        "splats_splat13": "splats.splat13",
+        "splats_splat14": "splats.splat14",
+        "splats_splat15": "splats.splat15",
+        "splats_splat16": "splats.splat16",
+        "splats_splat17": "splats.splat17",
+        "splats_splat18": "splats.splat18",
+        "splats_splat19": "splats.splat19",
+        "splats_splat20": "splats.splat20",
+        "splats_splat21": "splats.splat21",
+        "splats_splat22": "splats.splat22",
+        "splats_splat23": "splats.splat23",
+        "splats_splat24": "splats.splat24",
+        "splats_splat25": "splats.splat25",
+        "splats_splat26": "splats.splat26",
+        "splats_splat27": "splats.splat27",
+        "splats_splat28": "splats.splat28",
+        "splats_splat29": "splats.splat29",
+        "splats_splat30": "splats.splat30",
+        "splats_splat31": "splats.splat31",
+    }
+    INPUT_SOCKET_TYPES = {
+        "splats_splat0": "SPLAT",
+        "splats_splat1": "SPLAT",
+        "splats_splat2": "SPLAT",
+        "splats_splat3": "SPLAT",
+        "splats_splat4": "SPLAT",
+        "splats_splat5": "SPLAT",
+        "splats_splat6": "SPLAT",
+        "splats_splat7": "SPLAT",
+        "splats_splat8": "SPLAT",
+        "splats_splat9": "SPLAT",
+        "splats_splat10": "SPLAT",
+        "splats_splat11": "SPLAT",
+        "splats_splat12": "SPLAT",
+        "splats_splat13": "SPLAT",
+        "splats_splat14": "SPLAT",
+        "splats_splat15": "SPLAT",
+        "splats_splat16": "SPLAT",
+        "splats_splat17": "SPLAT",
+        "splats_splat18": "SPLAT",
+        "splats_splat19": "SPLAT",
+        "splats_splat20": "SPLAT",
+        "splats_splat21": "SPLAT",
+        "splats_splat22": "SPLAT",
+        "splats_splat23": "SPLAT",
+        "splats_splat24": "SPLAT",
+        "splats_splat25": "SPLAT",
+        "splats_splat26": "SPLAT",
+        "splats_splat27": "SPLAT",
+        "splats_splat28": "SPLAT",
+        "splats_splat29": "SPLAT",
+        "splats_splat30": "SPLAT",
+        "splats_splat31": "SPLAT",
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        splats_splat0: tuple[str, int],
+        splats_splat1: tuple[str, int],
+        splats_splat2: tuple[str, int] | None = None,
+        splats_splat3: tuple[str, int] | None = None,
+        splats_splat4: tuple[str, int] | None = None,
+        splats_splat5: tuple[str, int] | None = None,
+        splats_splat6: tuple[str, int] | None = None,
+        splats_splat7: tuple[str, int] | None = None,
+        splats_splat8: tuple[str, int] | None = None,
+        splats_splat9: tuple[str, int] | None = None,
+        splats_splat10: tuple[str, int] | None = None,
+        splats_splat11: tuple[str, int] | None = None,
+        splats_splat12: tuple[str, int] | None = None,
+        splats_splat13: tuple[str, int] | None = None,
+        splats_splat14: tuple[str, int] | None = None,
+        splats_splat15: tuple[str, int] | None = None,
+        splats_splat16: tuple[str, int] | None = None,
+        splats_splat17: tuple[str, int] | None = None,
+        splats_splat18: tuple[str, int] | None = None,
+        splats_splat19: tuple[str, int] | None = None,
+        splats_splat20: tuple[str, int] | None = None,
+        splats_splat21: tuple[str, int] | None = None,
+        splats_splat22: tuple[str, int] | None = None,
+        splats_splat23: tuple[str, int] | None = None,
+        splats_splat24: tuple[str, int] | None = None,
+        splats_splat25: tuple[str, int] | None = None,
+        splats_splat26: tuple[str, int] | None = None,
+        splats_splat27: tuple[str, int] | None = None,
+        splats_splat28: tuple[str, int] | None = None,
+        splats_splat29: tuple[str, int] | None = None,
+        splats_splat30: tuple[str, int] | None = None,
+        splats_splat31: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.splats_splat0 = splats_splat0
+        self.splats_splat1 = splats_splat1
+        if splats_splat2 is not None:
+            self.splats_splat2 = splats_splat2
+        if splats_splat3 is not None:
+            self.splats_splat3 = splats_splat3
+        if splats_splat4 is not None:
+            self.splats_splat4 = splats_splat4
+        if splats_splat5 is not None:
+            self.splats_splat5 = splats_splat5
+        if splats_splat6 is not None:
+            self.splats_splat6 = splats_splat6
+        if splats_splat7 is not None:
+            self.splats_splat7 = splats_splat7
+        if splats_splat8 is not None:
+            self.splats_splat8 = splats_splat8
+        if splats_splat9 is not None:
+            self.splats_splat9 = splats_splat9
+        if splats_splat10 is not None:
+            self.splats_splat10 = splats_splat10
+        if splats_splat11 is not None:
+            self.splats_splat11 = splats_splat11
+        if splats_splat12 is not None:
+            self.splats_splat12 = splats_splat12
+        if splats_splat13 is not None:
+            self.splats_splat13 = splats_splat13
+        if splats_splat14 is not None:
+            self.splats_splat14 = splats_splat14
+        if splats_splat15 is not None:
+            self.splats_splat15 = splats_splat15
+        if splats_splat16 is not None:
+            self.splats_splat16 = splats_splat16
+        if splats_splat17 is not None:
+            self.splats_splat17 = splats_splat17
+        if splats_splat18 is not None:
+            self.splats_splat18 = splats_splat18
+        if splats_splat19 is not None:
+            self.splats_splat19 = splats_splat19
+        if splats_splat20 is not None:
+            self.splats_splat20 = splats_splat20
+        if splats_splat21 is not None:
+            self.splats_splat21 = splats_splat21
+        if splats_splat22 is not None:
+            self.splats_splat22 = splats_splat22
+        if splats_splat23 is not None:
+            self.splats_splat23 = splats_splat23
+        if splats_splat24 is not None:
+            self.splats_splat24 = splats_splat24
+        if splats_splat25 is not None:
+            self.splats_splat25 = splats_splat25
+        if splats_splat26 is not None:
+            self.splats_splat26 = splats_splat26
+        if splats_splat27 is not None:
+            self.splats_splat27 = splats_splat27
+        if splats_splat28 is not None:
+            self.splats_splat28 = splats_splat28
+        if splats_splat29 is not None:
+            self.splats_splat29 = splats_splat29
+        if splats_splat30 is not None:
+            self.splats_splat30 = splats_splat30
+        if splats_splat31 is not None:
+            self.splats_splat31 = splats_splat31

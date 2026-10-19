@@ -42,3 +42,157 @@ class ComfyNotNode(BaseNode):
     def __init__(self, node_id: str, value: tuple[str, int]) -> None:
         super().__init__(node_id=node_id)
         self.value = value
+
+
+class ComfyAndNode(BaseNode):
+    __slots__ = (
+        "values_value0",
+        "values_value1",
+        "values_value2",
+        "values_value3",
+        "values_value4",
+        "values_value5",
+        "values_value6",
+        "values_value7",
+        "values_value8",
+        "values_value9",
+    )
+    CATEGORY = "utilities/logic"
+    OUTPUTS = {"BOOLEAN": 0}
+    RETURN_TYPES = ("BOOLEAN",)
+    INPUT_NAMES = {
+        "values_value0": "values.value0",
+        "values_value1": "values.value1",
+        "values_value2": "values.value2",
+        "values_value3": "values.value3",
+        "values_value4": "values.value4",
+        "values_value5": "values.value5",
+        "values_value6": "values.value6",
+        "values_value7": "values.value7",
+        "values_value8": "values.value8",
+        "values_value9": "values.value9",
+    }
+    INPUT_SOCKET_TYPES = {
+        "values_value0": "*",
+        "values_value1": "*",
+        "values_value2": "*",
+        "values_value3": "*",
+        "values_value4": "*",
+        "values_value5": "*",
+        "values_value6": "*",
+        "values_value7": "*",
+        "values_value8": "*",
+        "values_value9": "*",
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        values_value0: tuple[str, int],
+        values_value1: tuple[str, int] | None = None,
+        values_value2: tuple[str, int] | None = None,
+        values_value3: tuple[str, int] | None = None,
+        values_value4: tuple[str, int] | None = None,
+        values_value5: tuple[str, int] | None = None,
+        values_value6: tuple[str, int] | None = None,
+        values_value7: tuple[str, int] | None = None,
+        values_value8: tuple[str, int] | None = None,
+        values_value9: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.values_value0 = values_value0
+        if values_value1 is not None:
+            self.values_value1 = values_value1
+        if values_value2 is not None:
+            self.values_value2 = values_value2
+        if values_value3 is not None:
+            self.values_value3 = values_value3
+        if values_value4 is not None:
+            self.values_value4 = values_value4
+        if values_value5 is not None:
+            self.values_value5 = values_value5
+        if values_value6 is not None:
+            self.values_value6 = values_value6
+        if values_value7 is not None:
+            self.values_value7 = values_value7
+        if values_value8 is not None:
+            self.values_value8 = values_value8
+        if values_value9 is not None:
+            self.values_value9 = values_value9
+
+
+class ComfyOrNode(BaseNode):
+    __slots__ = (
+        "values_value0",
+        "values_value1",
+        "values_value2",
+        "values_value3",
+        "values_value4",
+        "values_value5",
+        "values_value6",
+        "values_value7",
+        "values_value8",
+        "values_value9",
+    )
+    CATEGORY = "utilities/logic"
+    OUTPUTS = {"BOOLEAN": 0}
+    RETURN_TYPES = ("BOOLEAN",)
+    INPUT_NAMES = {
+        "values_value0": "values.value0",
+        "values_value1": "values.value1",
+        "values_value2": "values.value2",
+        "values_value3": "values.value3",
+        "values_value4": "values.value4",
+        "values_value5": "values.value5",
+        "values_value6": "values.value6",
+        "values_value7": "values.value7",
+        "values_value8": "values.value8",
+        "values_value9": "values.value9",
+    }
+    INPUT_SOCKET_TYPES = {
+        "values_value0": "*",
+        "values_value1": "*",
+        "values_value2": "*",
+        "values_value3": "*",
+        "values_value4": "*",
+        "values_value5": "*",
+        "values_value6": "*",
+        "values_value7": "*",
+        "values_value8": "*",
+        "values_value9": "*",
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        values_value0: tuple[str, int],
+        values_value1: tuple[str, int] | None = None,
+        values_value2: tuple[str, int] | None = None,
+        values_value3: tuple[str, int] | None = None,
+        values_value4: tuple[str, int] | None = None,
+        values_value5: tuple[str, int] | None = None,
+        values_value6: tuple[str, int] | None = None,
+        values_value7: tuple[str, int] | None = None,
+        values_value8: tuple[str, int] | None = None,
+        values_value9: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.values_value0 = values_value0
+        if values_value1 is not None:
+            self.values_value1 = values_value1
+        if values_value2 is not None:
+            self.values_value2 = values_value2
+        if values_value3 is not None:
+            self.values_value3 = values_value3
+        if values_value4 is not None:
+            self.values_value4 = values_value4
+        if values_value5 is not None:
+            self.values_value5 = values_value5
+        if values_value6 is not None:
+            self.values_value6 = values_value6
+        if values_value7 is not None:
+            self.values_value7 = values_value7
+        if values_value8 is not None:
+            self.values_value8 = values_value8
+        if values_value9 is not None:
+            self.values_value9 = values_value9

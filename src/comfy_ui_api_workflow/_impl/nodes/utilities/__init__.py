@@ -401,4 +401,81 @@ class ComfyMathExpression(BaseNode):
             self.values_z = values_z
 
 
+class CreateList(BaseNode):
+    __slots__ = (
+        "inputs_input0",
+        "inputs_input1",
+        "inputs_input2",
+        "inputs_input3",
+        "inputs_input4",
+        "inputs_input5",
+        "inputs_input6",
+        "inputs_input7",
+        "inputs_input8",
+        "inputs_input9",
+    )
+    CATEGORY = "utilities"
+    OUTPUTS = {"list": 0}
+    RETURN_TYPES = ("*",)
+    INPUT_NAMES = {
+        "inputs_input0": "inputs.input0",
+        "inputs_input1": "inputs.input1",
+        "inputs_input2": "inputs.input2",
+        "inputs_input3": "inputs.input3",
+        "inputs_input4": "inputs.input4",
+        "inputs_input5": "inputs.input5",
+        "inputs_input6": "inputs.input6",
+        "inputs_input7": "inputs.input7",
+        "inputs_input8": "inputs.input8",
+        "inputs_input9": "inputs.input9",
+    }
+    INPUT_SOCKET_TYPES = {
+        "inputs_input0": "*",
+        "inputs_input1": "*",
+        "inputs_input2": "*",
+        "inputs_input3": "*",
+        "inputs_input4": "*",
+        "inputs_input5": "*",
+        "inputs_input6": "*",
+        "inputs_input7": "*",
+        "inputs_input8": "*",
+        "inputs_input9": "*",
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        inputs_input0: tuple[str, int],
+        inputs_input1: tuple[str, int] | None = None,
+        inputs_input2: tuple[str, int] | None = None,
+        inputs_input3: tuple[str, int] | None = None,
+        inputs_input4: tuple[str, int] | None = None,
+        inputs_input5: tuple[str, int] | None = None,
+        inputs_input6: tuple[str, int] | None = None,
+        inputs_input7: tuple[str, int] | None = None,
+        inputs_input8: tuple[str, int] | None = None,
+        inputs_input9: tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.inputs_input0 = inputs_input0
+        if inputs_input1 is not None:
+            self.inputs_input1 = inputs_input1
+        if inputs_input2 is not None:
+            self.inputs_input2 = inputs_input2
+        if inputs_input3 is not None:
+            self.inputs_input3 = inputs_input3
+        if inputs_input4 is not None:
+            self.inputs_input4 = inputs_input4
+        if inputs_input5 is not None:
+            self.inputs_input5 = inputs_input5
+        if inputs_input6 is not None:
+            self.inputs_input6 = inputs_input6
+        if inputs_input7 is not None:
+            self.inputs_input7 = inputs_input7
+        if inputs_input8 is not None:
+            self.inputs_input8 = inputs_input8
+        if inputs_input9 is not None:
+            self.inputs_input9 = inputs_input9
+
+
 __getattr__ = submodules_of(__name__)

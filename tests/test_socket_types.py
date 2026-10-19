@@ -30,9 +30,22 @@ def flattened_inputs(spec):
     def add(name, entry):
         options = entry[1] if len(entry) > 1 else {}
         if entry[0] == "COMFY_AUTOGROW_V3":
-            ((_, value),) = options["template"]["input"]["required"].items()
-            for letter in options["template"]["names"]:
+            template = options["template"]
+            ((_, value),) = next(
+                section.items() for section in template["input"].values() if section
+            )
+            names = template.get("names") or [
+                f"{template['prefix']}{index}" for index in range(template["max"])
+            ]
+            for letter in names:
                 inputs[f"{name}.{letter}"] = socket_type(value)
+            return
+        if entry[0] == "COMFY_DYNAMICGROUP_V3":
+            for row in range(options["max"]):
+                for section in ("required", "optional"):
+                    fields = options["template"].get(section, {})
+                    for field, field_entry in fields.items():
+                        inputs[f"{name}.{row}.{field}"] = socket_type(field_entry)
             return
         inputs[name] = socket_type(entry)
         if entry[0] == "COMFY_DYNAMICCOMBO_V3":

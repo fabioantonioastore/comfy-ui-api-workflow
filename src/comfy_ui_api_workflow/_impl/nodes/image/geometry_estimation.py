@@ -2,6 +2,7 @@ from typing import Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_bool, validate_choice, validate_range
+from ..dynamic import Choice, Combo, DynamicInputs, Flag, validate_dynamic
 
 
 class MoGeInference(BaseNode):
@@ -305,3 +306,176 @@ class MarigoldV2PostProcess(BaseNode):
         validate_choice(
             "prediction", self.prediction, MARIGOLDV2POSTPROCESS_PREDICTIONS
         )
+
+
+DA3Inference_Resize_Methods = Literal["upper_bound_resize", "lower_bound_resize"]
+
+
+DA3INFERENCE_RESIZE_METHODS = frozenset(get_args(DA3Inference_Resize_Methods))
+
+
+DA3Inference_Modes = Literal["mono", "multiview"]
+
+
+DA3Inference_Mode_Ref_View_Strategys = Literal[
+    "saddle_balanced", "saddle_sim_range", "first", "middle"
+]
+
+
+DA3Inference_Mode_Pose_Methods = Literal["cam_dec", "ray_pose"]
+
+
+class DA3Inference(DynamicInputs, BaseNode):
+    __slots__ = (
+        "da3_model",
+        "image",
+        "resolution",
+        "resize_method",
+        "mode",
+        "mode_ref_view_strategy",
+        "mode_pose_method",
+    )
+    CATEGORY = "image/geometry estimation"
+    OUTPUTS = {"da3_geometry": 0}
+    RETURN_TYPES = ("DA3_GEOMETRY",)
+    INPUT_NAMES = {
+        "mode_ref_view_strategy": "mode.ref_view_strategy",
+        "mode_pose_method": "mode.pose_method",
+    }
+    INPUT_SOCKET_TYPES = {
+        "da3_model": "DA3_MODEL",
+        "image": "IMAGE",
+        "resolution": "INT",
+        "resize_method": "COMBO",
+        "mode": "COMFY_DYNAMICCOMBO_V3",
+        "mode_ref_view_strategy": "COMBO",
+        "mode_pose_method": "COMBO",
+    }
+    DYNAMIC_INPUTS = {
+        "mode": Combo(
+            {
+                "mono": {},
+                "multiview": {
+                    "mode_ref_view_strategy": Choice(
+                        ("saddle_balanced", "saddle_sim_range", "first", "middle"),
+                        default="saddle_balanced",
+                    ),
+                    "mode_pose_method": Choice(
+                        ("cam_dec", "ray_pose"), default="cam_dec"
+                    ),
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        da3_model: tuple[str, int],
+        image: tuple[str, int],
+        resolution: int | tuple[str, int] = 504,
+        resize_method: (
+            DA3Inference_Resize_Methods | tuple[str, int]
+        ) = "upper_bound_resize",
+        mode: DA3Inference_Modes = "mono",
+        mode_ref_view_strategy: (
+            DA3Inference_Mode_Ref_View_Strategys | tuple[str, int] | None
+        ) = None,
+        mode_pose_method: (
+            DA3Inference_Mode_Pose_Methods | tuple[str, int] | None
+        ) = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.da3_model = da3_model
+        self.image = image
+        self.resolution = resolution
+        self.resize_method = resize_method
+        self.mode = mode
+        if mode_ref_view_strategy is not None:
+            self.mode_ref_view_strategy = mode_ref_view_strategy
+        if mode_pose_method is not None:
+            self.mode_pose_method = mode_pose_method
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_range("resolution", self.resolution, 140, 2520)
+        validate_choice(
+            "resize_method", self.resize_method, DA3INFERENCE_RESIZE_METHODS
+        )
+        validate_dynamic(self)
+
+
+DA3Render_Outputs = Literal["depth", "depth_colored", "sky_mask", "confidence"]
+
+
+DA3Render_Output_Normalizations = Literal["v2_style", "min_max", "raw"]
+
+
+class DA3Render(DynamicInputs, BaseNode):
+    __slots__ = (
+        "da3_geometry",
+        "output",
+        "output_normalization",
+        "output_apply_sky_clip",
+        "output_colored",
+    )
+    CATEGORY = "image/geometry estimation"
+    OUTPUTS = {"IMAGE": 0}
+    RETURN_TYPES = ("IMAGE",)
+    INPUT_NAMES = {
+        "output_normalization": "output.normalization",
+        "output_apply_sky_clip": "output.apply_sky_clip",
+        "output_colored": "output.colored",
+    }
+    INPUT_SOCKET_TYPES = {
+        "da3_geometry": "DA3_GEOMETRY",
+        "output": "COMFY_DYNAMICCOMBO_V3",
+        "output_normalization": "COMBO",
+        "output_apply_sky_clip": "BOOLEAN",
+        "output_colored": "BOOLEAN",
+    }
+    DYNAMIC_INPUTS = {
+        "output": Combo(
+            {
+                "depth": {
+                    "output_normalization": Choice(
+                        ("v2_style", "min_max", "raw"), default="v2_style"
+                    ),
+                    "output_apply_sky_clip": Flag(default=False),
+                },
+                "depth_colored": {
+                    "output_normalization": Choice(
+                        ("v2_style", "min_max", "raw"), default="v2_style"
+                    ),
+                    "output_apply_sky_clip": Flag(default=False),
+                },
+                "sky_mask": {"output_colored": Flag(default=False)},
+                "confidence": {"output_colored": Flag(default=False)},
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        da3_geometry: tuple[str, int],
+        output: DA3Render_Outputs = "depth",
+        output_normalization: (
+            DA3Render_Output_Normalizations | tuple[str, int] | None
+        ) = None,
+        output_apply_sky_clip: bool | tuple[str, int] | None = None,
+        output_colored: bool | tuple[str, int] | None = None,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.da3_geometry = da3_geometry
+        self.output = output
+        if output_normalization is not None:
+            self.output_normalization = output_normalization
+        if output_apply_sky_clip is not None:
+            self.output_apply_sky_clip = output_apply_sky_clip
+        if output_colored is not None:
+            self.output_colored = output_colored
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_dynamic(self)

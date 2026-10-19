@@ -2,6 +2,7 @@ from typing import Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_choice, validate_range
+from ..dynamic import Combo, DynamicInputs, Number, validate_dynamic
 
 ImageBlend_Blend_Modes = Literal[
     "normal", "multiply", "screen", "overlay", "soft_light", "difference"
@@ -213,3 +214,71 @@ class Morphology(BaseNode):
     def __validate(self) -> None:
         validate_choice("operation", self.operation, MORPHOLOGY_OPERATIONS)
         validate_range("kernel_size", self.kernel_size, 3, 999)
+
+
+ColorTransfer_Methods = Literal["reinhard_lab", "mkl_lab", "histogram"]
+
+
+COLORTRANSFER_METHODS = frozenset(get_args(ColorTransfer_Methods))
+
+
+ColorTransfer_Source_Stats = Literal["per_frame", "uniform", "target_frame"]
+
+
+class ColorTransfer(DynamicInputs, BaseNode):
+    __slots__ = (
+        "image_target",
+        "image_ref",
+        "method",
+        "source_stats",
+        "source_stats_target_index",
+        "strength",
+    )
+    CATEGORY = "image/filters"
+    OUTPUTS = {"image": 0}
+    RETURN_TYPES = ("IMAGE",)
+    INPUT_NAMES = {"source_stats_target_index": "source_stats.target_index"}
+    INPUT_SOCKET_TYPES = {
+        "image_target": "IMAGE",
+        "image_ref": "IMAGE",
+        "method": "COMBO",
+        "source_stats": "COMFY_DYNAMICCOMBO_V3",
+        "source_stats_target_index": "INT",
+        "strength": "FLOAT",
+    }
+    DYNAMIC_INPUTS = {
+        "source_stats": Combo(
+            {
+                "per_frame": {},
+                "uniform": {},
+                "target_frame": {
+                    "source_stats_target_index": Number(default=0, low=0, high=10000)
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        image_target: tuple[str, int],
+        image_ref: tuple[str, int],
+        method: ColorTransfer_Methods | tuple[str, int],
+        source_stats: ColorTransfer_Source_Stats = "per_frame",
+        source_stats_target_index: int | tuple[str, int] | None = None,
+        strength: float | tuple[str, int] = 1.0,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.image_target = image_target
+        self.image_ref = image_ref
+        self.method = method
+        self.source_stats = source_stats
+        if source_stats_target_index is not None:
+            self.source_stats_target_index = source_stats_target_index
+        self.strength = strength
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_choice("method", self.method, COLORTRANSFER_METHODS)
+        validate_range("strength", self.strength, 0.0, 10.0)
+        validate_dynamic(self)

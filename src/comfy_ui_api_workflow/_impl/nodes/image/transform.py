@@ -2,6 +2,7 @@ from typing import Any, Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_bool, validate_choice, validate_range
+from ..dynamic import Choice, Combo, DynamicInputs, Link, Number, validate_dynamic
 
 
 class ImagePadForOutpaint(BaseNode):
@@ -383,3 +384,162 @@ class CropByBBoxes(BaseNode):
         validate_range("output_height", self.output_height, 64, 4096)
         validate_range("padding", self.padding, 0, 1024)
         validate_choice("keep_aspect", self.keep_aspect, CROPBYBBOXES_KEEP_ASPECTS)
+
+
+ResizeImageMaskNode_Resize_Types = Literal[
+    "scale dimensions",
+    "scale by multiplier",
+    "scale longer dimension",
+    "scale shorter dimension",
+    "scale width",
+    "scale height",
+    "scale total pixels",
+    "match size",
+    "scale to multiple",
+]
+
+
+ResizeImageMaskNode_Scale_Methods = Literal[
+    "nearest-exact", "bilinear", "area", "bicubic", "lanczos"
+]
+
+
+RESIZEIMAGEMASKNODE_SCALE_METHODS = frozenset(
+    get_args(ResizeImageMaskNode_Scale_Methods)
+)
+
+
+ResizeImageMaskNode_Resize_Type_Crops = Literal["disabled", "center"]
+
+
+class ResizeImageMaskNode(DynamicInputs, BaseNode):
+    __slots__ = (
+        "input",
+        "resize_type",
+        "resize_type_width",
+        "resize_type_height",
+        "resize_type_crop",
+        "resize_type_multiplier",
+        "resize_type_longer_size",
+        "resize_type_shorter_size",
+        "resize_type_megapixels",
+        "resize_type_match",
+        "resize_type_multiple",
+        "scale_method",
+    )
+    CATEGORY = "image/transform"
+    OUTPUTS = {"resized": 0}
+    RETURN_TYPES = ("COMFY_MATCHTYPE_V3",)
+    INPUT_NAMES = {
+        "resize_type_width": "resize_type.width",
+        "resize_type_height": "resize_type.height",
+        "resize_type_crop": "resize_type.crop",
+        "resize_type_multiplier": "resize_type.multiplier",
+        "resize_type_longer_size": "resize_type.longer_size",
+        "resize_type_shorter_size": "resize_type.shorter_size",
+        "resize_type_megapixels": "resize_type.megapixels",
+        "resize_type_match": "resize_type.match",
+        "resize_type_multiple": "resize_type.multiple",
+    }
+    INPUT_SOCKET_TYPES = {
+        "input": "COMFY_MATCHTYPE_V3",
+        "resize_type": "COMFY_DYNAMICCOMBO_V3",
+        "resize_type_width": "INT",
+        "resize_type_height": "INT",
+        "resize_type_crop": "COMBO",
+        "resize_type_multiplier": "FLOAT",
+        "resize_type_longer_size": "INT",
+        "resize_type_shorter_size": "INT",
+        "resize_type_megapixels": "FLOAT",
+        "resize_type_match": "IMAGE,MASK",
+        "resize_type_multiple": "INT",
+        "scale_method": "COMBO",
+    }
+    DYNAMIC_INPUTS = {
+        "resize_type": Combo(
+            {
+                "scale dimensions": {
+                    "resize_type_width": Number(default=512, low=0, high=16384),
+                    "resize_type_height": Number(default=512, low=0, high=16384),
+                    "resize_type_crop": Choice(
+                        ("disabled", "center"), default="center"
+                    ),
+                },
+                "scale by multiplier": {
+                    "resize_type_multiplier": Number(default=1.0, low=0.01, high=8.0)
+                },
+                "scale longer dimension": {
+                    "resize_type_longer_size": Number(default=512, low=0, high=16384)
+                },
+                "scale shorter dimension": {
+                    "resize_type_shorter_size": Number(default=512, low=0, high=16384)
+                },
+                "scale width": {
+                    "resize_type_width": Number(default=512, low=0, high=16384)
+                },
+                "scale height": {
+                    "resize_type_height": Number(default=512, low=0, high=16384)
+                },
+                "scale total pixels": {
+                    "resize_type_megapixels": Number(default=1.0, low=0.01, high=16.0)
+                },
+                "match size": {
+                    "resize_type_match": Link(),
+                    "resize_type_crop": Choice(
+                        ("disabled", "center"), default="center"
+                    ),
+                },
+                "scale to multiple": {
+                    "resize_type_multiple": Number(default=8, low=1, high=16384)
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        input: tuple[str, int],
+        resize_type: ResizeImageMaskNode_Resize_Types = "scale dimensions",
+        resize_type_width: int | tuple[str, int] | None = None,
+        resize_type_height: int | tuple[str, int] | None = None,
+        resize_type_crop: (
+            ResizeImageMaskNode_Resize_Type_Crops | tuple[str, int] | None
+        ) = None,
+        resize_type_multiplier: float | tuple[str, int] | None = None,
+        resize_type_longer_size: int | tuple[str, int] | None = None,
+        resize_type_shorter_size: int | tuple[str, int] | None = None,
+        resize_type_megapixels: float | tuple[str, int] | None = None,
+        resize_type_match: tuple[str, int] | None = None,
+        resize_type_multiple: int | tuple[str, int] | None = None,
+        scale_method: ResizeImageMaskNode_Scale_Methods | tuple[str, int] = "area",
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.input = input
+        self.resize_type = resize_type
+        if resize_type_width is not None:
+            self.resize_type_width = resize_type_width
+        if resize_type_height is not None:
+            self.resize_type_height = resize_type_height
+        if resize_type_crop is not None:
+            self.resize_type_crop = resize_type_crop
+        if resize_type_multiplier is not None:
+            self.resize_type_multiplier = resize_type_multiplier
+        if resize_type_longer_size is not None:
+            self.resize_type_longer_size = resize_type_longer_size
+        if resize_type_shorter_size is not None:
+            self.resize_type_shorter_size = resize_type_shorter_size
+        if resize_type_megapixels is not None:
+            self.resize_type_megapixels = resize_type_megapixels
+        if resize_type_match is not None:
+            self.resize_type_match = resize_type_match
+        if resize_type_multiple is not None:
+            self.resize_type_multiple = resize_type_multiple
+        self.scale_method = scale_method
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_choice(
+            "scale_method", self.scale_method, RESIZEIMAGEMASKNODE_SCALE_METHODS
+        )
+        validate_dynamic(self)

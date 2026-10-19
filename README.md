@@ -3,7 +3,7 @@
 Build [ComfyUI](https://github.com/comfyanonymous/ComfyUI) workflows in Python
 and export them in the API format that ComfyUI's `POST /prompt` endpoint runs.
 
-- **618 ComfyUI nodes as Python classes**, from `KSampler` to Wan, LTXV, Flux,
+- **665 ComfyUI nodes as Python classes**, from `KSampler` to Wan, LTXV, Flux,
   3D and partner API nodes.
 - **Checked as you build**: input types, `min`/`max` ranges, combo choices,
   output names, socket types (no `LATENT` into a `CLIP` input) and cycles. A bad

@@ -3,6 +3,7 @@ from typing import Literal, get_args
 from ...base import BaseNode
 from ...validation import validate_bool, validate_choice, validate_range
 from ....lazy import submodules_of
+from ...dynamic import Combo, DynamicInputs, Number, validate_dynamic
 
 ModelSamplingDiscrete_Samplings = Literal[
     "eps", "v_prediction", "lcm", "x0", "img_to_img", "img_to_img_flow"
@@ -458,6 +459,114 @@ class ScaleROPE(BaseNode):
         validate_range("shift_y", self.shift_y, -256.0, 256.0)
         validate_range("scale_t", self.scale_t, 0.0, 100.0)
         validate_range("shift_t", self.shift_t, -256.0, 256.0)
+
+
+BlockSparseAttention_Selections = Literal["sol-attn", "sla", "vsa"]
+
+
+BlockSparseAttention_Sink_Conditionings = Literal[
+    "exact_kv", "exact_kv_and_rows", "off"
+]
+
+
+BLOCKSPARSEATTENTION_SINK_CONDITIONINGS = frozenset(
+    get_args(BlockSparseAttention_Sink_Conditionings)
+)
+
+
+class BlockSparseAttention(DynamicInputs, BaseNode):
+    __slots__ = (
+        "model",
+        "selection",
+        "selection_tau",
+        "selection_keep_percent",
+        "start_percent",
+        "end_percent",
+        "dense_blocks",
+        "min_tokens",
+        "extra_tokens",
+        "sink_conditioning",
+        "verbose",
+    )
+    CATEGORY = "model/patch"
+    OUTPUTS = {"model": 0}
+    RETURN_TYPES = ("MODEL",)
+    INPUT_NAMES = {
+        "selection_tau": "selection.tau",
+        "selection_keep_percent": "selection.keep_percent",
+    }
+    INPUT_SOCKET_TYPES = {
+        "model": "MODEL",
+        "selection": "COMFY_DYNAMICCOMBO_V3",
+        "selection_tau": "FLOAT",
+        "selection_keep_percent": "FLOAT",
+        "start_percent": "FLOAT",
+        "end_percent": "FLOAT",
+        "dense_blocks": "STRING",
+        "min_tokens": "INT",
+        "extra_tokens": "INT",
+        "sink_conditioning": "COMBO",
+        "verbose": "BOOLEAN",
+    }
+    DYNAMIC_INPUTS = {
+        "selection": Combo(
+            {
+                "sol-attn": {"selection_tau": Number(default=1.3, low=0.0, high=4.0)},
+                "sla": {
+                    "selection_keep_percent": Number(default=10.0, low=0.5, high=95.0)
+                },
+                "vsa": {
+                    "selection_keep_percent": Number(default=10.0, low=0.5, high=95.0)
+                },
+            }
+        )
+    }
+
+    def __init__(
+        self,
+        node_id: str,
+        model: tuple[str, int],
+        selection: BlockSparseAttention_Selections = "sol-attn",
+        selection_tau: float | tuple[str, int] | None = None,
+        selection_keep_percent: float | tuple[str, int] | None = None,
+        start_percent: float | tuple[str, int] = 0.2,
+        end_percent: float | tuple[str, int] = 1.0,
+        dense_blocks: str | tuple[str, int] = "",
+        min_tokens: int | tuple[str, int] = 12288,
+        extra_tokens: int | tuple[str, int] = 256,
+        sink_conditioning: (
+            BlockSparseAttention_Sink_Conditionings | tuple[str, int]
+        ) = "exact_kv_and_rows",
+        verbose: bool | tuple[str, int] = False,
+    ) -> None:
+        super().__init__(node_id=node_id)
+        self.model = model
+        self.selection = selection
+        if selection_tau is not None:
+            self.selection_tau = selection_tau
+        if selection_keep_percent is not None:
+            self.selection_keep_percent = selection_keep_percent
+        self.start_percent = start_percent
+        self.end_percent = end_percent
+        self.dense_blocks = dense_blocks
+        self.min_tokens = min_tokens
+        self.extra_tokens = extra_tokens
+        self.sink_conditioning = sink_conditioning
+        self.verbose = verbose
+        self.__validate()
+
+    def __validate(self) -> None:
+        validate_range("start_percent", self.start_percent, 0.0, 1.0)
+        validate_range("end_percent", self.end_percent, 0.0, 1.0)
+        validate_range("min_tokens", self.min_tokens, 0, 1048576)
+        validate_range("extra_tokens", self.extra_tokens, 0, 256)
+        validate_choice(
+            "sink_conditioning",
+            self.sink_conditioning,
+            BLOCKSPARSEATTENTION_SINK_CONDITIONINGS,
+        )
+        validate_bool("verbose", self.verbose)
+        validate_dynamic(self)
 
 
 __getattr__ = submodules_of(__name__)
