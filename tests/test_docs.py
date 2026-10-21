@@ -37,9 +37,9 @@ def python_blocks():
 def test_node_catalog_matches_the_library():
     catalog = (ROOT / "docs" / "nodes.md").read_text(encoding="utf-8")
 
-    assert catalog == load_generator().render(), (
-        "docs/nodes.md is out of date: run `hatch run python docs/generate_nodes.py`"
-    )
+    assert (
+        catalog == load_generator().render()
+    ), "docs/nodes.md is out of date: run `hatch run python docs/generate_nodes.py`"
 
 
 def test_node_catalog_lists_every_node_once():

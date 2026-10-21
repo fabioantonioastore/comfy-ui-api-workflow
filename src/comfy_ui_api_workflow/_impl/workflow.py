@@ -260,7 +260,7 @@ def _check_parameters(
 
 
 def _pipeline_error(name: str, pipeline: Pipeline, error: Exception) -> PipelineError:
-    rejection = pipeline._rejection() # type: ignore
+    rejection = pipeline._rejection()  # type: ignore
     if rejection is not None:
         position, node_type, rejected = rejection
         reason = (
@@ -329,13 +329,13 @@ class Workflow:
         name, pipeline = _new_pipeline(pipeline_type)
         _check_parameters(name, pipeline, parameters, self.nodes)
         next_index = self.__next_index
-        pipeline._bind(self) # type: ignore
+        pipeline._bind(self)  # type: ignore
         try:
             outputs = pipeline.build(**parameters)
-            rejection = pipeline._rejection() # type: ignore
+            rejection = pipeline._rejection()  # type: ignore
             if rejection is not None:
                 raise rejection[2]
-            pipeline._set_outputs(self.__pipeline_outputs(name, outputs)) # type: ignore
+            pipeline._set_outputs(self.__pipeline_outputs(name, outputs))  # type: ignore
         except Exception as error:
             failure = error
             if not isinstance(error, PipelineError):
@@ -346,10 +346,10 @@ class Workflow:
             self.__next_index = next_index
             if failure is error:
                 raise
-            rejection = pipeline._rejection() # type: ignore
+            rejection = pipeline._rejection()  # type: ignore
             raise failure from (error if rejection is None else rejection[2])
         finally:
-            pipeline._bind(None) # type: ignore
+            pipeline._bind(None)  # type: ignore
         return pipeline  # type: ignore
 
     def update_node(self, node_id: str, **inputs: Any) -> None:
@@ -358,7 +358,7 @@ class Workflow:
         node = self.nodes[node_id]
         changed: list[tuple[str, Any]] = []
         try:
-            with node._changing(): # type: ignore
+            with node._changing():  # type: ignore
                 for name, value in inputs.items():
                     if not _is_input(node, name):
                         reason = f"{type(node).__name__} has no input {name!r}"
@@ -366,9 +366,9 @@ class Workflow:
                     previous = getattr(node, name, _UNSET)
                     setattr(node, name, value)
                     changed.append((name, previous))
-            node._validate() # type: ignore
+            node._validate()  # type: ignore
         except (InvalidNodeChangeError, InvalidNodeParameterValue):
-            with node._changing(): # type: ignore
+            with node._changing():  # type: ignore
                 for name, previous in reversed(changed):
                     if previous is _UNSET:
                         delattr(node, name)
@@ -448,24 +448,24 @@ class Workflow:
             )
             raise PipelineError(name, reason)
         links: dict[str, tuple[str, int]] = {}
-        for output, value in outputs.items(): # type: ignore
+        for output, value in outputs.items():  # type: ignore
             if not isinstance(output, str):
-                reason = f"its output names must be str, not {type(output).__name__}" # type: ignore
+                reason = f"its output names must be str, not {type(output).__name__}"  # type: ignore
                 raise PipelineError(name, reason)
             if not _is_link(value):
                 reason = (
                     f"its output {output!r} must be a link (node_id, output_index), "
-                    f"not {type(value).__name__}" # type: ignore
+                    f"not {type(value).__name__}"  # type: ignore
                 )
                 raise PipelineError(name, reason)
-            source_id, index = value # type: ignore
+            source_id, index = value  # type: ignore
             if source_id not in self.nodes:
                 reason = (
                     f"its output {output!r} uses node {source_id!r}, "
                     "which is not in the workflow"
                 )
                 raise PipelineError(name, reason)
-            missing = _missing_output(self.nodes[source_id], index) # type: ignore
+            missing = _missing_output(self.nodes[source_id], index)  # type: ignore
             if missing is not None:
                 raise PipelineError(name, f"its output {output!r} uses {missing}")
             links[output] = (source_id, index)

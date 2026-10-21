@@ -60,7 +60,10 @@ class RunPodEndpoint:
         self.__api_key = api_key
 
     def run(
-        self, workflow: dict, timeout: float = 600, images: dict[str, bytes] | None = None
+        self,
+        workflow: dict,
+        timeout: float = 600,
+        images: dict[str, bytes] | None = None,
     ) -> dict:
         job_input: dict = {"workflow": workflow}
         if images:

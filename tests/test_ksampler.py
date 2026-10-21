@@ -73,7 +73,9 @@ def test_accepts_every_scheduler(ksampler_inputs, scheduler):
     ("name", "choices"),
     [("sampler_name", KSAMPLER_SAMPLER_NAMES), ("scheduler", KSAMPLER_SCHEDULERS)],
 )
-def test_rejects_unknown_choice_listing_the_sorted_options(ksampler_inputs, name, choices):
+def test_rejects_unknown_choice_listing_the_sorted_options(
+    ksampler_inputs, name, choices
+):
     with pytest.raises(InvalidNodeParameterValue) as error:
         make_ksampler(ksampler_inputs, **{name: "not_an_option"})
 

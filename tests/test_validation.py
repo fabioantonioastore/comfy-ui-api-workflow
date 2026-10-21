@@ -77,8 +77,12 @@ def test_validate_range_rejects_nan(range_min, range_max):
 
 
 @pytest.mark.parametrize("value", [float("inf"), float("-inf")])
-@pytest.mark.parametrize(("range_min", "range_max"), [(0.0, None), (None, 1.0), (None, None)])
-def test_validate_range_rejects_infinity_even_without_that_bound(value, range_min, range_max):
+@pytest.mark.parametrize(
+    ("range_min", "range_max"), [(0.0, None), (None, 1.0), (None, None)]
+)
+def test_validate_range_rejects_infinity_even_without_that_bound(
+    value, range_min, range_max
+):
     with pytest.raises(InvalidNodeParameterValue, match="threshold must be finite"):
         validate_range("threshold", value, range_min, range_max)
 

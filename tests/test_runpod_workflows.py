@@ -269,7 +269,11 @@ WHITE, BLACK, GRAY, ORANGE = 0xFFFFFF, 0x000000, 0x808080, 0xFF8000
 QUADRANTS = (RED, GREEN, BLUE, WHITE)
 SIX = (RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA)
 ROTATIONS = ("90 degrees", "180 degrees", "270 degrees")
-ROTATION_LABELS = {"90 degrees": "rot90", "180 degrees": "rot180", "270 degrees": "rot270"}
+ROTATION_LABELS = {
+    "90 degrees": "rot90",
+    "180 degrees": "rot180",
+    "270 degrees": "rot270",
+}
 FLIPS = ("x-axis: vertically", "y-axis: horizontally")
 FLIP_LABELS = {"x-axis: vertically": "flip_x", "y-axis: horizontally": "flip_y"}
 
@@ -336,7 +340,9 @@ class Picture:
     def mirrored(self) -> "Picture":
         step = self.channels
         rows = tuple(
-            b"".join(row[x * step : (x + 1) * step] for x in reversed(range(self.width)))
+            b"".join(
+                row[x * step : (x + 1) * step] for x in reversed(range(self.width))
+            )
             for row in self.rows
         )
         return Picture(self.width, self.height, self.channels, rows)
@@ -347,7 +353,9 @@ def png_chunks(data: bytes):
     position = 8
     while position < len(data):
         (length,) = struct.unpack(">I", data[position : position + 4])
-        yield data[position + 4 : position + 8], data[position + 8 : position + 8 + length]
+        yield data[position + 4 : position + 8], data[
+            position + 8 : position + 8 + length
+        ]
         position += 12 + length
 
 
@@ -392,8 +400,12 @@ def decode_png(data: bytes) -> Picture:
             header = body
         elif kind == b"IDAT":
             idat += body
-    width, height, depth, color_type, _, _, interlace = struct.unpack(">IIBBBBB", header)
-    assert depth == 8 and interlace == 0, f"unsupported PNG: depth {depth}, interlace {interlace}"
+    width, height, depth, color_type, _, _, interlace = struct.unpack(
+        ">IIBBBBB", header
+    )
+    assert (
+        depth == 8 and interlace == 0
+    ), f"unsupported PNG: depth {depth}, interlace {interlace}"
     channels = {0: 1, 2: 3, 4: 2, 6: 4}[color_type]
     stride = width * channels
     raw = zlib.decompress(idat)
@@ -508,9 +520,9 @@ def assert_quadrants(picture: Picture, colors=QUADRANTS, tolerance: int = 2) -> 
 
 def assert_generated(data: bytes, size: tuple[int, int], minimum: int = 40_000):
     assert png_size(data) == size, f"the image is {png_size(data)}, expected {size}"
-    assert len(data) > minimum, (
-        f"the {size[0]}x{size[1]} image has only {len(data)} bytes, so it is nearly flat"
-    )
+    assert (
+        len(data) > minimum
+    ), f"the {size[0]}x{size[1]} image has only {len(data)} bytes, so it is nearly flat"
 
 
 def mean_difference(first: Picture, second: Picture) -> float:
@@ -550,7 +562,9 @@ def pattern(x: int, y: int) -> tuple[int, int, int]:
 
 
 PATTERN_PNG = encode_png(24, 16, pattern)
-RGBA_PNG = encode_png(32, 32, lambda x, y: (200, 100, 50, 255 if x < 16 else 64), alpha=True)
+RGBA_PNG = encode_png(
+    32, 32, lambda x, y: (200, 100, 50, 255 if x < 16 else 64), alpha=True
+)
 STRIPE_PNG = encode_png(24, 16, lambda x, y: (255 if x < 12 else 0, 0, 0))
 
 
@@ -586,7 +600,9 @@ def case(description: str, *, uploads=None, fails_with: Any = (), gpu: bool = Fa
     reasons = (fails_with,) if isinstance(fails_with, str) else tuple(fails_with)
 
     def register(build: Callable) -> Callable:
-        CASES.append(Case(build.__name__, description, build, uploads or {}, reasons, None, gpu))
+        CASES.append(
+            Case(build.__name__, description, build, uploads or {}, reasons, None, gpu)
+        )
         return build
 
     return register
@@ -594,7 +610,9 @@ def case(description: str, *, uploads=None, fails_with: Any = (), gpu: bool = Fa
 
 def rejected(description: str, *, library_says: str, comfy_says: str):
     def register(build: Callable) -> Callable:
-        CASES.append(Case(build.__name__, description, build, {}, (comfy_says,), library_says))
+        CASES.append(
+            Case(build.__name__, description, build, {}, (comfy_says,), library_says)
+        )
         return build
 
     return register
@@ -608,7 +626,9 @@ def sent(workflow: Workflow) -> dict:
 
 
 def solid(w: Workflow, width: Any, height: Any, color: Any, batch: Any = 1):
-    node = w.add_node(EmptyImage, width=width, height=height, batch_size=batch, color=color)
+    node = w.add_node(
+        EmptyImage, width=width, height=height, batch_size=batch, color=color
+    )
     return node.output["IMAGE"]
 
 
@@ -650,7 +670,11 @@ def strip(w, colors, size):
 
 def tiles_of(w, image, size, overlap=0):
     return w.add_node(
-        SplitImageToTileList, image=image, tile_width=size, tile_height=size, overlap=overlap
+        SplitImageToTileList,
+        image=image,
+        tile_width=size,
+        tile_height=size,
+        overlap=overlap,
     ).output["IMAGE"]
 
 
@@ -658,7 +682,9 @@ def batch_of(w, colors, size=64):
     # A real batch of frames with different colors: a strip cut into a tile
     # list, then rebatched into a single batch.
     tiles = tiles_of(w, strip(w, colors, size), size)
-    return w.add_node(RebatchImages, images=tiles, batch_size=len(colors)).output["IMAGE"]
+    return w.add_node(RebatchImages, images=tiles, batch_size=len(colors)).output[
+        "IMAGE"
+    ]
 
 
 def quadrants(w, size, colors=QUADRANTS):
@@ -679,7 +705,12 @@ def flip(w, image, method):
 
 def scale(w, image, method, width, height, crop="disabled"):
     return w.add_node(
-        ImageScale, image=image, upscale_method=method, width=width, height=height, crop=crop
+        ImageScale,
+        image=image,
+        upscale_method=method,
+        width=width,
+        height=height,
+        crop=crop,
     ).output["IMAGE"]
 
 
@@ -738,7 +769,11 @@ def length(w, text):
 
 def equals(w, text, expected):
     return w.add_node(
-        StringCompare, string_a=text, string_b=expected, mode="Equal", case_sensitive=True
+        StringCompare,
+        string_a=text,
+        string_b=expected,
+        mode="Equal",
+        case_sensitive=True,
     ).output["BOOLEAN"]
 
 
@@ -753,7 +788,11 @@ def board(w, checks: dict, label="board"):
     image = None
     for flag in checks.values():
         tile = w.add_node(ComfySwitchNode, switch=flag, on_true=green, on_false=red)
-        image = tile.output["output"] if image is None else stitch(w, image, tile.output["output"])
+        image = (
+            tile.output["output"]
+            if image is None
+            else stitch(w, image, tile.output["output"])
+        )
     save(w, image, label)
     names = list(checks)
 
@@ -785,8 +824,20 @@ def empty_latent(w, width, height, batch=1):
     ).output["LATENT"]
 
 
-def ksample(w, model, positive, negative, latent, *, seed=7, steps=14, cfg=6.5,
-            sampler="dpmpp_2m", scheduler="karras", denoise=1.0):
+def ksample(
+    w,
+    model,
+    positive,
+    negative,
+    latent,
+    *,
+    seed=7,
+    steps=14,
+    cfg=6.5,
+    sampler="dpmpp_2m",
+    scheduler="karras",
+    denoise=1.0,
+):
     return w.add_node(
         KSampler,
         model=model,
@@ -814,13 +865,20 @@ class Framed(Pipeline):
     def build(self, image, border: int, color: int):
         size = self.add_node(GetImageSize, image=image)
         width = self.add_node(
-            ComfyMathExpression, expression=f"a + {2 * border}", values_a=size.output["width"]
+            ComfyMathExpression,
+            expression=f"a + {2 * border}",
+            values_a=size.output["width"],
         )
         height = self.add_node(
-            ComfyMathExpression, expression=f"a + {2 * border}", values_a=size.output["height"]
+            ComfyMathExpression,
+            expression=f"a + {2 * border}",
+            values_a=size.output["height"],
         )
         frame = self.add_node(
-            EmptyImage, width=width.output["INT"], height=height.output["INT"], color=color
+            EmptyImage,
+            width=width.output["INT"],
+            height=height.output["INT"],
+            color=color,
         )
         framed = self.add_node(
             ImageCompositeMasked,
@@ -837,14 +895,22 @@ class Spotlight(Pipeline):
     def build(self, image, size: int, grow: int):
         dims = self.add_node(GetImageSize, image=image)
         dark = self.add_node(
-            EmptyImage, width=dims.output["width"], height=dims.output["height"], color=BLACK
+            EmptyImage,
+            width=dims.output["width"],
+            height=dims.output["height"],
+            color=BLACK,
         )
         base = self.add_node(
-            SolidMask, value=0.0, width=dims.output["width"], height=dims.output["height"]
+            SolidMask,
+            value=0.0,
+            width=dims.output["width"],
+            height=dims.output["height"],
         )
         spot = self.add_node(SolidMask, value=1.0, width=size, height=size)
         offset = self.add_node(
-            ComfyMathExpression, expression=f"(a - {size}) / 2", values_a=dims.output["width"]
+            ComfyMathExpression,
+            expression=f"(a - {size}) / 2",
+            values_a=dims.output["width"],
         )
         placed = self.add_node(
             MaskComposite,
@@ -870,12 +936,22 @@ class Spotlight(Pipeline):
 
 
 class TextToImage(Pipeline):
-    def build(self, text: str, width: int = 768, height: int = 768, steps: int = 14,
-              seed: int = 42):
+    def build(
+        self,
+        text: str,
+        width: int = 768,
+        height: int = 768,
+        steps: int = 14,
+        seed: int = 42,
+    ):
         loader = self.add_node(CheckpointLoaderSimple, ckpt_name=CHECKPOINT)
         positive = self.add_node(CLIPTextEncode, text=text, clip=loader.output["CLIP"])
-        negative = self.add_node(CLIPTextEncode, text=NEGATIVE, clip=loader.output["CLIP"])
-        latent = self.add_node(EmptyLatentImage, width=width, height=height, batch_size=1)
+        negative = self.add_node(
+            CLIPTextEncode, text=NEGATIVE, clip=loader.output["CLIP"]
+        )
+        latent = self.add_node(
+            EmptyLatentImage, width=width, height=height, batch_size=1
+        )
         sampled = self.add_node(
             KSampler,
             model=loader.output["MODEL"],
@@ -897,8 +973,10 @@ class TextToImage(Pipeline):
 # ---------------------------------------------------------------- geometry
 
 
-@case("Quatro quadrantes montados com ImageCompositeMasked, girados em 90/180/270 graus "
-      "e espelhados nos dois eixos; cada cor tem de cair no quadrante certo.")
+@case(
+    "Quatro quadrantes montados com ImageCompositeMasked, girados em 90/180/270 graus "
+    "e espelhados nos dois eixos; cada cor tem de cair no quadrante certo."
+)
 def quadrant_rotations_and_flips(w):
     image = quadrants(w, 64)
     save(w, image, "original")
@@ -923,7 +1001,8 @@ def quadrant_rotations_and_flips(w):
             )
         for method in FLIPS:
             expect(
-                FLIP_LABELS[method], lambda x, y, m=method: flipped_source(m, x, y, 64, 64)
+                FLIP_LABELS[method],
+                lambda x, y, m=method: flipped_source(m, x, y, 64, 64),
             )
         expect(
             "rot90_flip_x",
@@ -935,8 +1014,10 @@ def quadrant_rotations_and_flips(w):
     return check
 
 
-@case("ImageStitch nas quatro direções, com ajuste de tamanho, espaçamento colorido e o "
-      "preenchimento que o ComfyUI faz quando as alturas/larguras não batem.")
+@case(
+    "ImageStitch nas quatro direções, com ajuste de tamanho, espaçamento colorido e o "
+    "preenchimento que o ComfyUI faz quando as alturas/larguras não batem."
+)
 def stitch_in_every_direction(w):
     right = stitch(w, solid(w, 32, 32, RED), solid(w, 32, 32, GREEN), "right", True, 4)
     down = stitch(w, right, solid(w, 32, 16, BLUE), "down", True)
@@ -952,9 +1033,18 @@ def stitch_in_every_direction(w):
         final = out.picture("up")
         assert final.size == (84, 78)
         expected = (
-            (42, 5, MAGENTA), (5, 5, BLACK), (70, 5, BLACK), (40, 10, RED), (40, 11, RED),
-            (8, 45, YELLOW), (8, 17, WHITE), (8, 72, WHITE), (26, 22, RED),
-            (49, 22, WHITE), (66, 22, GREEN), (46, 62, BLUE),
+            (42, 5, MAGENTA),
+            (5, 5, BLACK),
+            (70, 5, BLACK),
+            (40, 10, RED),
+            (40, 11, RED),
+            (8, 45, YELLOW),
+            (8, 17, WHITE),
+            (8, 72, WHITE),
+            (26, 22, RED),
+            (49, 22, WHITE),
+            (66, 22, GREEN),
+            (46, 62, BLUE),
         )
         for x, y, color in expected:
             assert_pixel(final, x, y, color)
@@ -962,8 +1052,9 @@ def stitch_in_every_direction(w):
     return check
 
 
-def outpaint_feather(i, j, feathering=8, height=32, width=32, top=8, bottom=24, left=16,
-                     right=0):
+def outpaint_feather(
+    i, j, feathering=8, height=32, width=32, top=8, bottom=24, left=16, right=0
+):
     # Mirrors ImagePadForOutpaint's mask for pixel (row i, column j) of the original.
     distance = min(
         i if top else height,
@@ -971,11 +1062,15 @@ def outpaint_feather(i, j, feathering=8, height=32, width=32, top=8, bottom=24, 
         j if left else width,
         width - j if right else width,
     )
-    return 0.0 if distance >= feathering else ((feathering - distance) / feathering) ** 2
+    return (
+        0.0 if distance >= feathering else ((feathering - distance) / feathering) ** 2
+    )
 
 
-@case("ImagePadForOutpaint com e sem feathering: borda nova cinza 50%, original no lugar "
-      "e a máscara com o degradê quadrático do ComfyUI.")
+@case(
+    "ImagePadForOutpaint com e sem feathering: borda nova cinza 50%, original no lugar "
+    "e a máscara com o degradê quadrático do ComfyUI."
+)
 def outpaint_canvas_and_mask(w):
     image = solid(w, 32, 32, RED)
     padding = {"left": 16, "top": 8, "right": 0, "bottom": 24}
@@ -1001,8 +1096,10 @@ def outpaint_canvas_and_mask(w):
     return check
 
 
-@case("Recorte com ImageCropV2 + PrimitiveBoundingBox, CenterCropImages e RandomCropImages; "
-      "ampliado de volta com nearest-exact, tem de ser idêntico ao original.")
+@case(
+    "Recorte com ImageCropV2 + PrimitiveBoundingBox, CenterCropImages e RandomCropImages; "
+    "ampliado de volta com nearest-exact, tem de ser idêntico ao original."
+)
 def crop_chain_back_to_quadrants(w):
     image = quadrants(w, 64)
     cropped = crop(w, image, 16, 16, 32, 32)
@@ -1031,8 +1128,10 @@ def total_pixels_size(width, height, megapixels, steps):
     return round(width * factor / steps) * steps, round(height * factor / steps) * steps
 
 
-@case("Imagem metade vermelha/metade azul redimensionada com todos os métodos e nós de "
-      "escala; tamanhos calculados como o ComfyUI calcula e as metades preservadas.")
+@case(
+    "Imagem metade vermelha/metade azul redimensionada com todos os métodos e nós de "
+    "escala; tamanhos calculados como o ComfyUI calcula e as metades preservadas."
+)
 def scale_methods_keep_halves(w):
     halves = stitch(w, solid(w, 20, 20, RED), solid(w, 20, 20, BLUE))
     methods = ("nearest-exact", "bilinear", "area", "bicubic", "lanczos")
@@ -1043,7 +1142,10 @@ def scale_methods_keep_halves(w):
     save(w, scale_by(w, halves, "area", 0.5), "half")
     save(w, scale_by(w, halves, "lanczos", 1.75), "bigger")
     largest = w.add_node(
-        ImageScaleToMaxDimension, image=halves, upscale_method="lanczos", largest_size=30
+        ImageScaleToMaxDimension,
+        image=halves,
+        upscale_method="lanczos",
+        largest_size=30,
     )
     save(w, largest.output["IMAGE"], "max_dimension")
     total = w.add_node(
@@ -1075,13 +1177,19 @@ def scale_methods_keep_halves(w):
     return check
 
 
-@case("SplitImageToTileList corta 128x128 em 9 tiles com sobreposição e "
-      "ImageMergeTileList remonta a imagem; tiles e mosaico conferidos.")
+@case(
+    "SplitImageToTileList corta 128x128 em 9 tiles com sobreposição e "
+    "ImageMergeTileList remonta a imagem; tiles e mosaico conferidos."
+)
 def tile_split_and_merge(w):
     tiles = tiles_of(w, quadrants(w, 128), 64, overlap=16)
     save(w, tiles, "tile")
     merged = w.add_node(
-        ImageMergeTileList, image_list=tiles, final_width=128, final_height=128, overlap=16
+        ImageMergeTileList,
+        image_list=tiles,
+        final_width=128,
+        final_height=128,
+        overlap=16,
     )
     save(w, merged.output["IMAGE"], "merged")
 
@@ -1100,8 +1208,10 @@ def tile_split_and_merge(w):
     return check
 
 
-@case("Seis cores viram uma lista de tiles, um ImageGrid 3x2 com espaçamento preto e um "
-      "ShuffleDataset embaralhado (mesmas cores em outra ordem).")
+@case(
+    "Seis cores viram uma lista de tiles, um ImageGrid 3x2 com espaçamento preto e um "
+    "ShuffleDataset embaralhado (mesmas cores em outra ordem)."
+)
 def grid_collage_and_shuffle(w):
     tiles = tiles_of(w, strip(w, SIX, 64), 64)
     grid = w.add_node(
@@ -1121,7 +1231,9 @@ def grid_collage_and_shuffle(w):
     save(w, row.output["images"], "shuffled")
 
     def check(out):
-        assert [tile.pixel(32, 32) for tile in out.pictures("tile")] == [rgb(c) for c in SIX]
+        assert [tile.pixel(32, 32) for tile in out.pictures("tile")] == [
+            rgb(c) for c in SIX
+        ]
         grid = out.picture("grid")
         assert grid.size == (104, 68)
         for index, color in enumerate(SIX):
@@ -1136,8 +1248,10 @@ def grid_collage_and_shuffle(w):
     return check
 
 
-@case("Lista de seis cores reagrupada com RebatchImages; ImageFromBatch com índice positivo "
-      "e negativo e RepeatImageBatch; a ordem das cores tem de ser exata.")
+@case(
+    "Lista de seis cores reagrupada com RebatchImages; ImageFromBatch com índice positivo "
+    "e negativo e RepeatImageBatch; a ordem das cores tem de ser exata."
+)
 def rebatch_pick_and_repeat(w):
     frames = batch_of(w, SIX)
     picked = w.add_node(ImageFromBatch, image=frames, batch_index=2, length=3)
@@ -1158,8 +1272,10 @@ def rebatch_pick_and_repeat(w):
     return check
 
 
-@case("ImageCompositeMasked com máscara recortada por MaskComposite, com origem saindo da "
-      "borda e com resize_source.")
+@case(
+    "ImageCompositeMasked com máscara recortada por MaskComposite, com origem saindo da "
+    "borda e com resize_source."
+)
 def masked_composite_with_offsets(w):
     background, patch = solid(w, 64, 64, BLUE), solid(w, 32, 32, YELLOW)
     left_half = combine_masks(
@@ -1184,8 +1300,10 @@ def masked_composite_with_offsets(w):
     return check
 
 
-@case("ResizeAndPadImage em paisagem, retrato e quadrantes, com preenchimento preto e "
-      "branco, e o resultado costurado lado a lado.")
+@case(
+    "ResizeAndPadImage em paisagem, retrato e quadrantes, com preenchimento preto e "
+    "branco, e o resultado costurado lado a lado."
+)
 def letterbox_portrait_and_landscape(w):
     def letterbox(image, width, height, color, method):
         return w.add_node(
@@ -1214,7 +1332,12 @@ def letterbox_portrait_and_landscape(w):
             assert_pixel(portrait, x, y, color)
         both = out.picture("both")
         assert both.size == (96, 48)
-        for x, y, color in ((24, 24, RED), (72, 24, GREEN), (54, 24, WHITE), (24, 4, BLACK)):
+        for x, y, color in (
+            (24, 24, RED),
+            (72, 24, GREEN),
+            (54, 24, WHITE),
+            (24, 4, BLACK),
+        ):
             assert_pixel(both, x, y, color)
         squeezed = out.picture("squeezed")
         assert squeezed.size == (40, 24)
@@ -1226,8 +1349,10 @@ def letterbox_portrait_and_landscape(w):
     return check
 
 
-@case("Rotações e espelhamentos de uma imagem 96x48 (não quadrada): as dimensões trocam e "
-      "cada pixel amostrado vem exatamente da posição esperada.")
+@case(
+    "Rotações e espelhamentos de uma imagem 96x48 (não quadrada): as dimensões trocam e "
+    "cada pixel amostrado vem exatamente da posição esperada."
+)
 def non_square_rotations(w):
     halves = stitch(w, solid(w, 48, 48, RED), solid(w, 48, 48, BLUE))
     for rotation in ROTATIONS:
@@ -1263,8 +1388,10 @@ def non_square_rotations(w):
     return check
 
 
-@case("Ampliação 4x com nearest-exact seguida de redução 4x com area: o resultado tem de "
-      "ser idêntico, pixel a pixel, à imagem de partida.")
+@case(
+    "Ampliação 4x com nearest-exact seguida de redução 4x com area: o resultado tem de "
+    "ser idêntico, pixel a pixel, à imagem de partida."
+)
 def nearest_up_area_down_is_lossless(w):
     image = quadrants(w, 32, (ORANGE, CYAN, MAGENTA, GRAY))
     up = scale_by(w, image, "nearest-exact", 4.0)
@@ -1282,12 +1409,20 @@ def nearest_up_area_down_is_lossless(w):
     return check
 
 
-@case("Borda nova nos quatro lados com ImagePadForOutpaint e recorte de volta com "
-      "ImageCropV2: a área original volta intacta.")
+@case(
+    "Borda nova nos quatro lados com ImagePadForOutpaint e recorte de volta com "
+    "ImageCropV2: a área original volta intacta."
+)
 def outpaint_all_sides_then_crop_back(w):
     image = quadrants(w, 32)
     padded = w.add_node(
-        ImagePadForOutpaint, image=image, left=8, top=16, right=24, bottom=8, feathering=0
+        ImagePadForOutpaint,
+        image=image,
+        left=8,
+        top=16,
+        right=24,
+        bottom=8,
+        feathering=0,
     ).output["IMAGE"]
     save(w, image, "original")
     save(w, padded, "padded")
@@ -1335,15 +1470,21 @@ def blended(mode, first, second, factor):
     return pixel_of(one(a / 255, b / 255) for a, b in zip(rgb(first), rgb(second)))
 
 
-@case("Os seis modos do ImageBlend com cores intermediárias, conferidos contra as fórmulas "
-      "do ComfyUI, e o blend que redimensiona a segunda imagem.")
+@case(
+    "Os seis modos do ImageBlend com cores intermediárias, conferidos contra as fórmulas "
+    "do ComfyUI, e o blend que redimensiona a segunda imagem."
+)
 def blend_modes_board(w):
     first, second = solid(w, 32, 32, 0xCC6633), solid(w, 32, 32, 0x66CC99)
     tiles = []
     for mode in BLEND_MODES:
         factor = 0.25 if mode == "normal" else 1.0
         tile = w.add_node(
-            ImageBlend, image1=first, image2=second, blend_mode=mode, blend_factor=factor
+            ImageBlend,
+            image1=first,
+            image2=second,
+            blend_mode=mode,
+            blend_factor=factor,
         ).output["IMAGE"]
         save(w, tile, f"blend_{mode}")
         tiles.append(tile)
@@ -1373,8 +1514,10 @@ def blend_modes_board(w):
     return check
 
 
-@case("Cadeia AdjustBrightness -> AdjustContrast -> NormalizeImages -> ImageInvert com "
-      "cada etapa salva e conferida contra a conta feita em Python.")
+@case(
+    "Cadeia AdjustBrightness -> AdjustContrast -> NormalizeImages -> ImageInvert com "
+    "cada etapa salva e conferida contra a conta feita em Python."
+)
 def brightness_contrast_normalize_invert_chain(w):
     base = solid(w, 16, 16, 0x663399)
     brighter = w.add_node(AdjustBrightness, images=base, factor=1.5).output["images"]
@@ -1400,7 +1543,9 @@ def brightness_contrast_normalize_invert_chain(w):
 
 
 SOLID_FILTERS = {
-    "blur": lambda w, i: w.add_node(ImageBlur, image=i, blur_radius=3, sigma=2.0).output["IMAGE"],
+    "blur": lambda w, i: w.add_node(
+        ImageBlur, image=i, blur_radius=3, sigma=2.0
+    ).output["IMAGE"],
     "sharpen": lambda w, i: w.add_node(
         ImageSharpen, image=i, sharpen_radius=2, sigma=1.0, alpha=0.5
     ).output["IMAGE"],
@@ -1428,13 +1573,17 @@ SOLID_FILTERS = {
     "brightness_1": lambda w, i: w.add_node(
         AdjustBrightness, images=i, factor=1.0
     ).output["images"],
-    "contrast_1": lambda w, i: w.add_node(AdjustContrast, images=i, factor=1.0).output["images"],
+    "contrast_1": lambda w, i: w.add_node(AdjustContrast, images=i, factor=1.0).output[
+        "images"
+    ],
     "scale_1": lambda w, i: scale_by(w, i, "bicubic", 1.0),
 }
 
 
-@case("Doze filtros (blur, sharpen, morfologia, quantização, ruído zero, etc.) aplicados a "
-      "uma cor sólida: nenhum pode alterar a cor, nem nas bordas.")
+@case(
+    "Doze filtros (blur, sharpen, morfologia, quantização, ruído zero, etc.) aplicados a "
+    "uma cor sólida: nenhum pode alterar a cor, nem nas bordas."
+)
 def filters_keep_solid_colors(w):
     base = solid(w, 48, 48, 0x3366CC)
     for label, apply in SOLID_FILTERS.items():
@@ -1450,8 +1599,10 @@ def filters_keep_solid_colors(w):
     return check
 
 
-@case("Canny e as morfologias gradient/top_hat/bottom_hat sobre cor sólida: sem bordas, "
-      "o resultado tem de ser preto.")
+@case(
+    "Canny e as morfologias gradient/top_hat/bottom_hat sobre cor sólida: sem bordas, "
+    "o resultado tem de ser preto."
+)
 def edge_filters_cancel_on_solid(w):
     base = solid(w, 48, 48, 0x3366CC)
     canny = w.add_node(Canny, image=base, low_threshold=0.4, high_threshold=0.8)
@@ -1469,8 +1620,10 @@ def edge_filters_cancel_on_solid(w):
     return check
 
 
-@case("ImageAddNoise com a mesma semente duas vezes e uma semente diferente: mesmas "
-      "sementes dão imagens idênticas, sementes diferentes não.")
+@case(
+    "ImageAddNoise com a mesma semente duas vezes e uma semente diferente: mesmas "
+    "sementes dão imagens idênticas, sementes diferentes não."
+)
 def seeded_image_noise(w):
     base = solid(w, 32, 32, GRAY)
     for label, seed in (("seed_7", 7), ("seed_7_again", 7), ("seed_8", 8)):
@@ -1478,7 +1631,9 @@ def seeded_image_noise(w):
         save(w, noisy.output["IMAGE"], label)
 
     def check(out):
-        first, again, other = (out.picture(label) for label in ("seed_7", "seed_7_again", "seed_8"))
+        first, again, other = (
+            out.picture(label) for label in ("seed_7", "seed_7_again", "seed_8")
+        )
         assert first.rows == again.rows
         assert first.rows != other.rows
         assert len(set(first.pixels())) > 50
@@ -1486,10 +1641,14 @@ def seeded_image_noise(w):
     return check
 
 
-@case("Degradê criado escalando um 2x1 preto/branco com bilinear, quantizado em 2 cores "
-      "sem dithering, com Floyd-Steinberg e com Bayer.")
+@case(
+    "Degradê criado escalando um 2x1 preto/branco com bilinear, quantizado em 2 cores "
+    "sem dithering, com Floyd-Steinberg e com Bayer."
+)
 def quantize_gradient_with_dithers(w):
-    ramp = scale(w, stitch(w, solid(w, 1, 1, BLACK), solid(w, 1, 1, WHITE)), "bilinear", 64, 16)
+    ramp = scale(
+        w, stitch(w, solid(w, 1, 1, BLACK), solid(w, 1, 1, WHITE)), "bilinear", 64, 16
+    )
     save(w, ramp, "ramp")
     dithers = ("none", "floyd-steinberg", "bayer-4")
     for dither in dithers:
@@ -1513,12 +1672,16 @@ def quantize_gradient_with_dithers(w):
     return check
 
 
-@case("ImageRGBToYUV e ImageYUVToRGB: o Y/Cb/Cr de vermelho, verde, azul e branco bate com "
-      "a matriz BT.601 e a volta para RGB recupera os quadrantes.")
+@case(
+    "ImageRGBToYUV e ImageYUVToRGB: o Y/Cb/Cr de vermelho, verde, azul e branco bate com "
+    "a matriz BT.601 e a volta para RGB recupera os quadrantes."
+)
 def yuv_round_trip_and_luma(w):
     image = quadrants(w, 32)
     yuv = w.add_node(ImageRGBToYUV, image=image)
-    back = w.add_node(ImageYUVToRGB, Y=yuv.output["Y"], U=yuv.output["U"], V=yuv.output["V"])
+    back = w.add_node(
+        ImageYUVToRGB, Y=yuv.output["Y"], U=yuv.output["U"], V=yuv.output["V"]
+    )
     for channel in ("Y", "U", "V"):
         save(w, yuv.output[channel], f"channel_{channel}")
     save(w, back.output["IMAGE"], "back")
@@ -1544,14 +1707,21 @@ def srgb_to_linear(value: float) -> float:
     return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
 
 
-@case("ImageColorSpace sRGB -> linear -> sRGB em quatro cores: o cinza linear escurece "
-      "como a curva sRGB manda e a volta recupera as cores.")
+@case(
+    "ImageColorSpace sRGB -> linear -> sRGB em quatro cores: o cinza linear escurece "
+    "como a curva sRGB manda e a volta recupera as cores."
+)
 def color_space_round_trip(w):
     colors = (GRAY, 0x40C080, 0xC04020, 0x204060)
     image = quadrants(w, 32, colors)
-    linear = w.add_node(ImageColorSpace, image=image, source="sRGB", destination="linear")
+    linear = w.add_node(
+        ImageColorSpace, image=image, source="sRGB", destination="linear"
+    )
     back = w.add_node(
-        ImageColorSpace, image=linear.output["IMAGE"], source="linear", destination="sRGB"
+        ImageColorSpace,
+        image=linear.output["IMAGE"],
+        source="linear",
+        destination="sRGB",
     )
     save(w, linear.output["IMAGE"], "linear")
     save(w, back.output["IMAGE"], "back")
@@ -1564,8 +1734,10 @@ def color_space_round_trip(w):
     return check
 
 
-@case("Canny num tabuleiro preto/branco: bordas brancas exatamente nas linhas que separam "
-      "os quadrantes e preto longe delas.")
+@case(
+    "Canny num tabuleiro preto/branco: bordas brancas exatamente nas linhas que separam "
+    "os quadrantes e preto longe delas."
+)
 def canny_finds_quadrant_borders(w):
     board_image = quadrants(w, 64, (BLACK, WHITE, WHITE, BLACK))
     edges = w.add_node(Canny, image=board_image, low_threshold=0.1, high_threshold=0.3)
@@ -1578,16 +1750,24 @@ def canny_finds_quadrant_borders(w):
             assert_pixel(edges, x, y, BLACK)
         # Kornia keeps the whole vertical border, but where the four quadrants
         # meet it drops half of the horizontal one, so only part of it is required.
-        rows = sum(any(edges.pixel(x, y)[0] > 128 for x in range(29, 35)) for y in range(64))
-        columns = sum(any(edges.pixel(x, y)[0] > 128 for y in range(29, 35)) for x in range(64))
+        rows = sum(
+            any(edges.pixel(x, y)[0] > 128 for x in range(29, 35)) for y in range(64)
+        )
+        columns = sum(
+            any(edges.pixel(x, y)[0] > 128 for y in range(29, 35)) for x in range(64)
+        )
         assert rows >= 58, f"the vertical border shows up in {rows} of 64 rows"
-        assert columns >= 16, f"the horizontal border shows up in {columns} of 64 columns"
+        assert (
+            columns >= 16
+        ), f"the horizontal border shows up in {columns} of 64 columns"
 
     return check
 
 
-@case("Morphology dilate/erode/open/close num quadrado branco 8x8: cresce e encolhe "
-      "exatamente 1 pixel por lado, abrir e fechar preservam o quadrado.")
+@case(
+    "Morphology dilate/erode/open/close num quadrado branco 8x8: cresce e encolhe "
+    "exatamente 1 pixel por lado, abrir e fechar preservam o quadrado."
+)
 def morphology_grows_and_shrinks_square(w):
     square = paste(w, solid(w, 32, 32, BLACK), solid(w, 8, 8, WHITE), 12, 12)
     for operation in ("dilate", "erode", "open", "close"):
@@ -1596,8 +1776,18 @@ def morphology_grows_and_shrinks_square(w):
 
     def check(out):
         expected = {
-            "dilate": {(11, 11): WHITE, (20, 20): WHITE, (10, 10): BLACK, (21, 21): BLACK},
-            "erode": {(13, 13): WHITE, (18, 18): WHITE, (12, 12): BLACK, (19, 19): BLACK},
+            "dilate": {
+                (11, 11): WHITE,
+                (20, 20): WHITE,
+                (10, 10): BLACK,
+                (21, 21): BLACK,
+            },
+            "erode": {
+                (13, 13): WHITE,
+                (18, 18): WHITE,
+                (12, 12): BLACK,
+                (19, 19): BLACK,
+            },
             "open": {(12, 12): WHITE, (19, 19): WHITE, (11, 11): BLACK},
             "close": {(12, 12): WHITE, (19, 19): WHITE, (20, 20): BLACK},
         }
@@ -1620,8 +1810,10 @@ PORTER_DUFF = {
 }
 
 
-@case("PorterDuffImageComposite em sete modos com fonte vermelha 50% e destino azul opaco; "
-      "imagem e máscara (1 - alfa) resultantes conferidas com as equações Porter-Duff.")
+@case(
+    "PorterDuffImageComposite em sete modos com fonte vermelha 50% e destino azul opaco; "
+    "imagem e máscara (1 - alfa) resultantes conferidas com as equações Porter-Duff."
+)
 def porter_duff_modes(w):
     source, destination = solid(w, 32, 32, RED), solid(w, 32, 32, BLUE)
     half, opaque = solid_mask(w, 0.5, 32, 32), solid_mask(w, 0.0, 32, 32)
@@ -1646,10 +1838,16 @@ def porter_duff_modes(w):
     return check
 
 
-@case("JoinImageWithAlpha gera PNG RGBA, ImageInvert preserva o alfa e SplitImageWithAlpha "
-      "devolve a máscara invertida (1 - alfa).")
+@case(
+    "JoinImageWithAlpha gera PNG RGBA, ImageInvert preserva o alfa e SplitImageWithAlpha "
+    "devolve a máscara invertida (1 - alfa)."
+)
 def alpha_join_and_split(w):
-    joined = w.add_node(JoinImageWithAlpha, image=solid(w, 32, 32, RED), alpha=solid_mask(w, 0.25, 32, 32))
+    joined = w.add_node(
+        JoinImageWithAlpha,
+        image=solid(w, 32, 32, RED),
+        alpha=solid_mask(w, 0.25, 32, 32),
+    )
     inverted = w.add_node(ImageInvert, image=joined.output["IMAGE"])
     split = w.add_node(SplitImageWithAlpha, image=joined.output["IMAGE"])
     save(w, joined.output["IMAGE"], "rgba")
@@ -1676,8 +1874,10 @@ def alpha_join_and_split(w):
 # ---------------------------------------------------------------- masks
 
 
-@case("Álgebra de máscaras com MaskComposite (add, subtract, multiply, xor, or, and) com "
-      "deslocamentos, inclusive saindo da borda; cada região conferida.")
+@case(
+    "Álgebra de máscaras com MaskComposite (add, subtract, multiply, xor, or, and) com "
+    "deslocamentos, inclusive saindo da borda; cada região conferida."
+)
 def mask_algebra_board(w):
     mask = solid_mask(w, 0.5, 64, 64)
     mask = combine_masks(w, mask, solid_mask(w, 0.25, 32, 32), "add")
@@ -1710,8 +1910,10 @@ def mask_algebra_board(w):
     return check
 
 
-@case("FeatherMask em três lados, CropMask e ThresholdMask; o degradê linear do feather "
-      "conferido coluna a coluna.")
+@case(
+    "FeatherMask em três lados, CropMask e ThresholdMask; o degradê linear do feather "
+    "conferido coluna a coluna."
+)
 def mask_feather_crop_threshold(w):
     feathered = w.add_node(
         FeatherMask, mask=solid_mask(w, 1.0, 32, 32), left=8, top=0, right=4, bottom=2
@@ -1725,8 +1927,13 @@ def mask_feather_crop_threshold(w):
     def check(out):
         feathered = out.picture("feathered")
         expected = {
-            (0, 10): 1 / 8, (3, 10): 4 / 8, (7, 10): 1.0, (31, 10): 1 / 4,
-            (29, 10): 3 / 4, (15, 31): 1 / 2, (0, 31): 1 / 16,
+            (0, 10): 1 / 8,
+            (3, 10): 4 / 8,
+            (7, 10): 1.0,
+            (31, 10): 1 / 4,
+            (29, 10): 3 / 4,
+            (15, 31): 1 / 2,
+            (0, 31): 1 / 16,
         }
         for (x, y), value in expected.items():
             assert_pixel(feathered, x, y, gray(value), 1)
@@ -1741,13 +1948,19 @@ def mask_feather_crop_threshold(w):
     return check
 
 
-@case("GrowMask com kernel quadrado e com cantos arredondados, e encolhendo; as bordas do "
-      "quadrado conferidas pixel a pixel.")
+@case(
+    "GrowMask com kernel quadrado e com cantos arredondados, e encolhendo; as bordas do "
+    "quadrado conferidas pixel a pixel."
+)
 def grow_mask_square_vs_tapered(w):
-    square = combine_masks(w, solid_mask(w, 0.0, 32, 32), solid_mask(w, 1.0, 8, 8), "add", 12, 12)
+    square = combine_masks(
+        w, solid_mask(w, 0.0, 32, 32), solid_mask(w, 1.0, 8, 8), "add", 12, 12
+    )
     variants = {"square": (2, False), "tapered": (2, True), "shrunk": (-2, False)}
     for label, (expand, tapered) in variants.items():
-        grown = w.add_node(GrowMask, mask=square, expand=expand, tapered_corners=tapered)
+        grown = w.add_node(
+            GrowMask, mask=square, expand=expand, tapered_corners=tapered
+        )
         save(w, mask_image(w, grown.output["MASK"]), label)
 
     def check(out):
@@ -1764,8 +1977,10 @@ def grow_mask_square_vs_tapered(w):
     return check
 
 
-@case("ImageToMask nos canais vermelho, verde e azul de quadrantes coloridos: cada máscara "
-      "acende só onde o canal existe.")
+@case(
+    "ImageToMask nos canais vermelho, verde e azul de quadrantes coloridos: cada máscara "
+    "acende só onde o canal existe."
+)
 def image_channels_to_masks(w):
     image = quadrants(w, 32)
     for channel in ("red", "green", "blue"):
@@ -1781,8 +1996,10 @@ def image_channels_to_masks(w):
     return check
 
 
-@case("ImageColorToMask isola o quadrante verde; a máscara pinta esse quadrante de amarelo "
-      "com ImageCompositeMasked; uma cor ausente gera máscara vazia.")
+@case(
+    "ImageColorToMask isola o quadrante verde; a máscara pinta esse quadrante de amarelo "
+    "com ImageCompositeMasked; uma cor ausente gera máscara vazia."
+)
 def color_to_mask_picks_quadrant(w):
     image = quadrants(w, 32)
     green = w.add_node(ImageColorToMask, image=image, color=GREEN).output["MASK"]
@@ -1802,9 +2019,11 @@ def color_to_mask_picks_quadrant(w):
     return check
 
 
-@case("Upload de um PNG RGBA pelo worker: LoadImage devolve RGB intacto e máscara 1 - alfa, "
-      "LoadImageMask lê os canais alfa, vermelho e verde.",
-      uploads={"probe_rgba.png": RGBA_PNG})
+@case(
+    "Upload de um PNG RGBA pelo worker: LoadImage devolve RGB intacto e máscara 1 - alfa, "
+    "LoadImageMask lê os canais alfa, vermelho e verde.",
+    uploads={"probe_rgba.png": RGBA_PNG},
+)
 def uploaded_rgba_masks(w):
     loaded = w.add_node(LoadImage, image="probe_rgba.png")
     save(w, loaded.output["IMAGE"], "image")
@@ -1828,11 +2047,19 @@ def uploaded_rgba_masks(w):
     return check
 
 
-@case("Máscara com FeatherMask usada no ImageCompositeMasked: a mistura preto/branco "
-      "segue a rampa da máscara coluna por coluna.")
+@case(
+    "Máscara com FeatherMask usada no ImageCompositeMasked: a mistura preto/branco "
+    "segue a rampa da máscara coluna por coluna."
+)
 def feathered_mask_blends_composite(w):
-    mask = w.add_node(FeatherMask, mask=solid_mask(w, 1.0, 32, 32), left=8).output["MASK"]
-    save(w, paste(w, solid(w, 32, 32, BLACK), solid(w, 32, 32, WHITE), mask=mask), "blend")
+    mask = w.add_node(FeatherMask, mask=solid_mask(w, 1.0, 32, 32), left=8).output[
+        "MASK"
+    ]
+    save(
+        w,
+        paste(w, solid(w, 32, 32, BLACK), solid(w, 32, 32, WHITE), mask=mask),
+        "blend",
+    )
 
     def check(out):
         picture = out.picture("blend")
@@ -1845,9 +2072,11 @@ def feathered_mask_blends_composite(w):
 # ---------------------------------------------------------------- uploaded images
 
 
-@case("PNG com um padrão diferente em cada pixel enviado ao worker e carregado com "
-      "LoadImage: salvo de volta, tem de ser idêntico pixel a pixel.",
-      uploads={"probe_pattern.png": PATTERN_PNG})
+@case(
+    "PNG com um padrão diferente em cada pixel enviado ao worker e carregado com "
+    "LoadImage: salvo de volta, tem de ser idêntico pixel a pixel.",
+    uploads={"probe_pattern.png": PATTERN_PNG},
+)
 def uploaded_image_round_trip(w):
     loaded = w.add_node(LoadImage, image="probe_pattern.png")
     save(w, loaded.output["IMAGE"], "loaded")
@@ -1864,9 +2093,11 @@ def uploaded_image_round_trip(w):
     return check
 
 
-@case("O padrão enviado é girado e espelhado no ComfyUI; todos os pixels de todas as saídas "
-      "são conferidos contra a transformação exata.",
-      uploads={"probe_pattern.png": PATTERN_PNG})
+@case(
+    "O padrão enviado é girado e espelhado no ComfyUI; todos os pixels de todas as saídas "
+    "são conferidos contra a transformação exata.",
+    uploads={"probe_pattern.png": PATTERN_PNG},
+)
 def uploaded_image_geometry(w):
     loaded = w.add_node(LoadImage, image="probe_pattern.png").output["IMAGE"]
     for rotation in ROTATIONS:
@@ -1891,15 +2122,19 @@ def uploaded_image_geometry(w):
             )
         for method in FLIPS:
             expect(
-                FLIP_LABELS[method], (24, 16), lambda x, y, m=method: flipped_source(m, x, y, 24, 16)
+                FLIP_LABELS[method],
+                (24, 16),
+                lambda x, y, m=method: flipped_source(m, x, y, 24, 16),
             )
 
     return check
 
 
-@case("O padrão enviado é ampliado 3x com nearest-exact e recortado com ImageCropV2 e "
-      "CenterCropImages; cada pixel tem de vir do lugar certo.",
-      uploads={"probe_pattern.png": PATTERN_PNG})
+@case(
+    "O padrão enviado é ampliado 3x com nearest-exact e recortado com ImageCropV2 e "
+    "CenterCropImages; cada pixel tem de vir do lugar certo.",
+    uploads={"probe_pattern.png": PATTERN_PNG},
+)
 def uploaded_image_scale_and_crop_exact(w):
     loaded = w.add_node(LoadImage, image="probe_pattern.png").output["IMAGE"]
     save(w, scale_by(w, loaded, "nearest-exact", 3.0), "tripled")
@@ -1922,12 +2157,20 @@ def uploaded_image_scale_and_crop_exact(w):
     return check
 
 
-@case("Faixa vermelha enviada ao worker vira máscara com LoadImageMask (canal red) e "
-      "decide onde o amarelo cobre o azul.",
-      uploads={"probe_stripe.png": STRIPE_PNG})
+@case(
+    "Faixa vermelha enviada ao worker vira máscara com LoadImageMask (canal red) e "
+    "decide onde o amarelo cobre o azul.",
+    uploads={"probe_stripe.png": STRIPE_PNG},
+)
 def uploaded_mask_drives_composite(w):
-    mask = w.add_node(LoadImageMask, image="probe_stripe.png", channel="red").output["MASK"]
-    save(w, paste(w, solid(w, 24, 16, BLUE), solid(w, 24, 16, YELLOW), mask=mask), "composite")
+    mask = w.add_node(LoadImageMask, image="probe_stripe.png", channel="red").output[
+        "MASK"
+    ]
+    save(
+        w,
+        paste(w, solid(w, 24, 16, BLUE), solid(w, 24, 16, YELLOW), mask=mask),
+        "composite",
+    )
     save(w, mask_image(w, mask), "mask")
 
     def check(out):
@@ -1942,11 +2185,15 @@ def uploaded_mask_drives_composite(w):
 # ---------------------------------------------------------------- text, math and logic
 
 
-@case("Quadro de 14 verificações de texto (concatenar, substring com índice negativo, "
-      "maiúsculas/minúsculas, trim, replace, unicode) feitas no ComfyUI.")
+@case(
+    "Quadro de 14 verificações de texto (concatenar, substring com índice negativo, "
+    "maiúsculas/minúsculas, trim, replace, unicode) feitas no ComfyUI."
+)
 def string_basics_board(w):
     def substring(text, start, end):
-        return w.add_node(StringSubstring, string=text, start=start, end=end).output["STRING"]
+        return w.add_node(StringSubstring, string=text, start=start, end=end).output[
+            "STRING"
+        ]
 
     def case_of(text, mode):
         return w.add_node(CaseConverter, string=text, mode=mode).output["STRING"]
@@ -1980,12 +2227,18 @@ def string_basics_board(w):
     return board(w, checks)
 
 
-@case("Quadro de comparações: StringCompare (começa/termina/igual, com e sem caixa), "
-      "StringContains e a veracidade Python do ComfyNotNode.")
+@case(
+    "Quadro de comparações: StringCompare (começa/termina/igual, com e sem caixa), "
+    "StringContains e a veracidade Python do ComfyNotNode."
+)
 def string_compare_contains_board(w):
     def compare(first, second, mode, sensitive=True):
         return w.add_node(
-            StringCompare, string_a=first, string_b=second, mode=mode, case_sensitive=sensitive
+            StringCompare,
+            string_a=first,
+            string_b=second,
+            mode=mode,
+            case_sensitive=sensitive,
         ).output["BOOLEAN"]
 
     def contains(text, part, sensitive=True):
@@ -2012,11 +2265,15 @@ def string_compare_contains_board(w):
     return board(w, checks)
 
 
-@case("Quadro de regex: RegexMatch com flags (ignorecase, multiline, dotall), RegexExtract "
-      "nos quatro modos, RegexReplace com grupos e padrão inválido.")
+@case(
+    "Quadro de regex: RegexMatch com flags (ignorecase, multiline, dotall), RegexExtract "
+    "nos quatro modos, RegexReplace com grupos e padrão inválido."
+)
 def regex_board(w):
     def match(text, regex, **flags):
-        return w.add_node(RegexMatch, string=text, regex_pattern=regex, **flags).output["matches"]
+        return w.add_node(RegexMatch, string=text, regex_pattern=regex, **flags).output[
+            "matches"
+        ]
 
     def extract(text, regex, mode, **options):
         return w.add_node(
@@ -2038,26 +2295,40 @@ def regex_board(w):
         "single_line": negate(w, match("line1\nline2", "^line2$", multiline=False)),
         "dotall": match("a\nb", "a.b", dotall=True),
         "no_dotall": negate(w, match("a\nb", "a.b", dotall=False)),
-        "first_match": equals(w, extract("size=24px; scale=2x", r"\d+", "First Match"), "24"),
-        "all_matches": equals(w, extract("size=24px; scale=2x", r"\d+", "All Matches"), "24\n2"),
+        "first_match": equals(
+            w, extract("size=24px; scale=2x", r"\d+", "First Match"), "24"
+        ),
+        "all_matches": equals(
+            w, extract("size=24px; scale=2x", r"\d+", "All Matches"), "24\n2"
+        ),
         "first_group": equals(
-            w, extract("key=value", r"(\w+)=(\w+)", "First Group", group_index=2), "value"
+            w,
+            extract("key=value", r"(\w+)=(\w+)", "First Group", group_index=2),
+            "value",
         ),
         "all_groups": equals(
-            w, extract("a=1 b=2 c=3", r"(\w)=(\d)", "All Groups", group_index=1), "a\nb\nc"
+            w,
+            extract("a=1 b=2 c=3", r"(\w)=(\d)", "All Groups", group_index=1),
+            "a\nb\nc",
         ),
-        "tuple_matches": equals(w, extract("a=1 b=2", r"(\w)=(\d)", "All Matches"), "a\nb"),
+        "tuple_matches": equals(
+            w, extract("a=1 b=2", r"(\w)=(\d)", "All Matches"), "a\nb"
+        ),
         "replace_groups": equals(
             w, replace("2026-10-16", r"(\d+)-(\d+)-(\d+)", r"\3/\2/\1"), "16/10/2026"
         ),
-        "replace_case": equals(w, replace("aAaA", "a", "b", case_insensitive=False), "bAbA"),
+        "replace_case": equals(
+            w, replace("aAaA", "a", "b", case_insensitive=False), "bAbA"
+        ),
         "invalid_pattern": calc(w, "a == 0", a=length(w, invalid))["BOOL"],
     }
     return board(w, checks)
 
 
-@case("Quadro de JSON e números: JsonExtractString (texto solto, bloco Markdown, chave "
-      "ausente) e ComfyNumberConvert de texto, float negativo e booleano.")
+@case(
+    "Quadro de JSON e números: JsonExtractString (texto solto, bloco Markdown, chave "
+    "ausente) e ComfyNumberConvert de texto, float negativo e booleano."
+)
 def json_and_number_conversion_board(w):
     def from_json(text, key):
         return w.add_node(JsonExtractString, json_string=text, key=key).output["STRING"]
@@ -2085,8 +2356,10 @@ def json_and_number_conversion_board(w):
     return board(w, checks)
 
 
-@case("Quadro de ComfyMathExpression: sum/min/max/abs/round/pow/sqrt/ceil/floor/log2/int, "
-      "ternário, módulo e Pitágoras; saídas INT e FLOAT viram tamanhos de imagem.")
+@case(
+    "Quadro de ComfyMathExpression: sum/min/max/abs/round/pow/sqrt/ceil/floor/log2/int, "
+    "ternário, módulo e Pitágoras; saídas INT e FLOAT viram tamanhos de imagem."
+)
 def math_expression_board(w):
     truth = w.add_node(PrimitiveBoolean, value=True).output["BOOLEAN"]
     checks = {
@@ -2108,7 +2381,9 @@ def math_expression_board(w):
     width = calc(w, "a * 2.6", a=10)["INT"]
     factor = calc(w, "a / 4", a=2)["FLOAT"]
     save(w, solid(w, width, 8, ORANGE), "from_int")
-    save(w, scale_by(w, solid(w, 64, 64, ORANGE), "nearest-exact", factor), "from_float")
+    save(
+        w, scale_by(w, solid(w, 64, 64, ORANGE), "nearest-exact", factor), "from_float"
+    )
 
     def check(out):
         check_board(out)
@@ -2118,13 +2393,17 @@ def math_expression_board(w):
     return check
 
 
-@case("ComfySwitchNode é preguiçoso: o ramo não escolhido divide por zero e mesmo assim o "
-      "job passa; switches escolhem tamanhos e imagens, com ComfyNotNode.")
+@case(
+    "ComfySwitchNode é preguiçoso: o ramo não escolhido divide por zero e mesmo assim o "
+    "job passa; switches escolhem tamanhos e imagens, com ComfyNotNode."
+)
 def switch_selects_lazily(w):
     broken = calc(w, "a / b", a=1, b=0)["INT"]
     forty_eight = w.add_node(PrimitiveInt, value=48).output["INT"]
     thirty_two = w.add_node(PrimitiveInt, value=32).output["INT"]
-    off = w.add_node(ComfySwitchNode, switch=False, on_true=broken, on_false=forty_eight)
+    off = w.add_node(
+        ComfySwitchNode, switch=False, on_true=broken, on_false=forty_eight
+    )
     on = w.add_node(ComfySwitchNode, switch=True, on_true=thirty_two, on_false=broken)
     save(w, solid(w, off.output["output"], on.output["output"], GREEN), "sized")
     found = w.add_node(StringContains, string="stable diffusion", substring="diffusion")
@@ -2137,7 +2416,10 @@ def switch_selects_lazily(w):
     save(w, picked.output["output"], "picked")
     flipped = negate(w, w.add_node(PrimitiveBoolean, value=True).output["BOOLEAN"])
     other = w.add_node(
-        ComfySwitchNode, switch=flipped, on_true=solid(w, 8, 8, RED), on_false=solid(w, 8, 8, BLUE)
+        ComfySwitchNode,
+        switch=flipped,
+        on_true=solid(w, 8, 8, RED),
+        on_false=solid(w, 8, 8, BLUE),
     )
     save(w, other.output["output"], "negated")
 
@@ -2151,8 +2433,10 @@ def switch_selects_lazily(w):
     return check
 
 
-@case("GetImageSize alimenta ComfyMathExpression e EmptyImage: largura, altura e batch "
-      "derivados no servidor, inclusive ImageScale com altura 0 (proporcional).")
+@case(
+    "GetImageSize alimenta ComfyMathExpression e EmptyImage: largura, altura e batch "
+    "derivados no servidor, inclusive ImageScale com altura 0 (proporcional)."
+)
 def math_drives_image_size(w):
     base = solid(w, 40, 24, ORANGE, batch=3)
     size = w.add_node(GetImageSize, image=base).output
@@ -2197,14 +2481,21 @@ def resolution(ratio, megapixels, multiple):
     )
 
 
-@case("ResolutionSelector em cinco proporções, megapixels e múltiplos: cada EmptyImage tem "
-      "exatamente o tamanho que a fórmula do ComfyUI produz.")
+@case(
+    "ResolutionSelector em cinco proporções, megapixels e múltiplos: cada EmptyImage tem "
+    "exatamente o tamanho que a fórmula do ComfyUI produz."
+)
 def resolution_selector_aspect_ratios(w):
     for index, (ratio, megapixels, multiple) in enumerate(RESOLUTIONS):
         size = w.add_node(
-            ResolutionSelector, aspect_ratio=ratio, megapixels=megapixels, multiple=multiple
+            ResolutionSelector,
+            aspect_ratio=ratio,
+            megapixels=megapixels,
+            multiple=multiple,
         ).output
-        save(w, solid(w, size["width"], size["height"], hues(5)[index]), f"ratio_{index}")
+        save(
+            w, solid(w, size["width"], size["height"], hues(5)[index]), f"ratio_{index}"
+        )
 
     def check(out):
         for index, (ratio, megapixels, multiple) in enumerate(RESOLUTIONS):
@@ -2215,13 +2506,19 @@ def resolution_selector_aspect_ratios(w):
     return check
 
 
-@case("ColorToRGBInt: o inteiro pinta um EmptyImage, o alfa de #RRGGBBAA vira largura via "
-      "matemática e o hex colore o texto do TextOverlay.")
+@case(
+    "ColorToRGBInt: o inteiro pinta um EmptyImage, o alfa de #RRGGBBAA vira largura via "
+    "matemática e o hex colore o texto do TextOverlay."
+)
 def color_to_rgb_int_paints(w):
     spring = w.add_node(ColorToRGBInt, color="#00ff7f").output
     save(w, solid(w, 16, 16, spring["rgb_int"]), "painted")
     steel = w.add_node(ColorToRGBInt, color="#336699cc").output
-    save(w, solid(w, calc(w, "round(a * 100)", a=steel["alpha"])["INT"], 8, WHITE), "alpha_width")
+    save(
+        w,
+        solid(w, calc(w, "round(a * 100)", a=steel["alpha"])["INT"], 8, WHITE),
+        "alpha_width",
+    )
     text = w.add_node(
         TextOverlay,
         images=solid(w, 128, 64, WHITE),
@@ -2246,8 +2543,10 @@ def color_to_rgb_int_paints(w):
     return check
 
 
-@case("Todos os primitivos (Int, Float, Boolean, String, StringMultiline, BoundingBox, "
-      "Seed) alimentam um mesmo fluxo de imagem com tamanho calculado.")
+@case(
+    "Todos os primitivos (Int, Float, Boolean, String, StringMultiline, BoundingBox, "
+    "Seed) alimentam um mesmo fluxo de imagem com tamanho calculado."
+)
 def primitives_feed_everything(w):
     width = w.add_node(PrimitiveInt, value=40).output["INT"]
     factor = w.add_node(PrimitiveFloat, value=1.5).output["FLOAT"]
@@ -2280,8 +2579,10 @@ def primitives_feed_everything(w):
     return check
 
 
-@case("TextOverlay no topo/esquerda e embaixo/direita com e sem contorno: o texto aparece "
-      "só na faixa esperada e o resto da imagem fica intacto.")
+@case(
+    "TextOverlay no topo/esquerda e embaixo/direita com e sem contorno: o texto aparece "
+    "só na faixa esperada e o resto da imagem fica intacto."
+)
 def text_overlay_variants(w):
     def overlay(background, position, align, outline):
         return w.add_node(
@@ -2310,8 +2611,10 @@ def text_overlay_variants(w):
     return check
 
 
-@case("StringLength vira batch_size do EmptyImage e amount do RepeatImageBatch: o número de "
-      "arquivos devolvidos prova a conta.")
+@case(
+    "StringLength vira batch_size do EmptyImage e amount do RepeatImageBatch: o número de "
+    "arquivos devolvidos prova a conta."
+)
 def string_length_drives_batch(w):
     frames = solid(w, 16, 16, YELLOW, batch=length(w, "abc"))
     repeated = w.add_node(RepeatImageBatch, image=frames, amount=length(w, "ab"))
@@ -2325,12 +2628,20 @@ def string_length_drives_batch(w):
     return check
 
 
-@case("O filename_prefix do SaveImage vem de StringConcatenate + CaseConverter + "
-      "StringReplace calculados no servidor: o nome do arquivo prova o resultado.")
+@case(
+    "O filename_prefix do SaveImage vem de StringConcatenate + CaseConverter + "
+    "StringReplace calculados no servidor: o nome do arquivo prova o resultado."
+)
 def string_ops_build_filename_prefix(w):
-    lower = w.add_node(CaseConverter, string="GALERIA", mode="lowercase").output["STRING"]
-    snake = w.add_node(StringReplace, string="caso 01", find=" ", replace="_").output["STRING"]
-    prefix = w.add_node(StringConcatenate, string_a=lower, string_b=snake, delimiter="-")
+    lower = w.add_node(CaseConverter, string="GALERIA", mode="lowercase").output[
+        "STRING"
+    ]
+    snake = w.add_node(StringReplace, string="caso 01", find=" ", replace="_").output[
+        "STRING"
+    ]
+    prefix = w.add_node(
+        StringConcatenate, string_a=lower, string_b=snake, delimiter="-"
+    )
     save(w, solid(w, 16, 16, ORANGE), prefix.output["STRING"])
 
     def check(out):
@@ -2343,11 +2654,17 @@ def string_ops_build_filename_prefix(w):
 # ---------------------------------------------------------------- animation and video
 
 
-@case("Seis cores viram um lote e um PNG animado (SaveAnimatedPNG): o arquivo tem 6 quadros "
-      "no acTL e o primeiro quadro é vermelho.")
+@case(
+    "Seis cores viram um lote e um PNG animado (SaveAnimatedPNG): o arquivo tem 6 quadros "
+    "no acTL e o primeiro quadro é vermelho."
+)
 def animated_png_frames(w):
     w.add_node(
-        SaveAnimatedPNG, images=batch_of(w, SIX), filename_prefix="loop", fps=3.0, compress_level=6
+        SaveAnimatedPNG,
+        images=batch_of(w, SIX),
+        filename_prefix="loop",
+        fps=3.0,
+        compress_level=6,
     )
 
     def check(out):
@@ -2359,8 +2676,10 @@ def animated_png_frames(w):
     return check
 
 
-@case("O mesmo lote vira WEBP animado sem perdas (SaveAnimatedWEBP): canvas 64x64 e um "
-      "quadro ANMF por cor.")
+@case(
+    "O mesmo lote vira WEBP animado sem perdas (SaveAnimatedWEBP): canvas 64x64 e um "
+    "quadro ANMF por cor."
+)
 def animated_webp_frames(w):
     w.add_node(
         SaveAnimatedWEBP,
@@ -2380,12 +2699,21 @@ def animated_webp_frames(w):
     return check
 
 
-@case("SaveWEBM com VP9 e com AV1 a partir de 8 quadros 128x128: dois WebM com os codecs "
-      "certos no cabeçalho Matroska.")
+@case(
+    "SaveWEBM com VP9 e com AV1 a partir de 8 quadros 128x128: dois WebM com os codecs "
+    "certos no cabeçalho Matroska."
+)
 def webm_vp9_and_av1(w):
     frames = batch_of(w, hues(8), 128)
     for codec in ("vp9", "av1"):
-        w.add_node(SaveWEBM, images=frames, codec=codec, filename_prefix=codec, fps=8.0, crf=32.0)
+        w.add_node(
+            SaveWEBM,
+            images=frames,
+            codec=codec,
+            filename_prefix=codec,
+            fps=8.0,
+            crf=32.0,
+        )
 
     def check(out):
         assert out.name("vp9").endswith(".webm")
@@ -2405,12 +2733,22 @@ VIDEO_TARGETS = {
 }
 
 
-@case("SaveVideo em todas as combinações de contêiner e codec (mp4/mkv/webm, h264/av1, "
-      "auto): extensão, contêiner e codec conferidos em cada arquivo.")
+@case(
+    "SaveVideo em todas as combinações de contêiner e codec (mp4/mkv/webm, h264/av1, "
+    "auto): extensão, contêiner e codec conferidos em cada arquivo."
+)
 def save_video_containers(w):
-    video = w.add_node(CreateVideo, images=batch_of(w, hues(8), 128), fps=8.0).output["VIDEO"]
+    video = w.add_node(CreateVideo, images=batch_of(w, hues(8), 128), fps=8.0).output[
+        "VIDEO"
+    ]
     for label, (container, codec, _) in VIDEO_TARGETS.items():
-        w.add_node(SaveVideo, video=video, filename_prefix=label, format=container, format_codec=codec)
+        w.add_node(
+            SaveVideo,
+            video=video,
+            filename_prefix=label,
+            format=container,
+            format_codec=codec,
+        )
 
     def check(out):
         for label, (_, _, extension) in VIDEO_TARGETS.items():
@@ -2424,9 +2762,11 @@ def save_video_containers(w):
     return check
 
 
-@case("Vídeo -> GetVideoComponents -> CreateVideo de novo (fps, bit_depth e color_space "
-      "ligados como combos) -> componentes: os seis quadros voltam idênticos e o fps vira "
-      "largura via matemática.")
+@case(
+    "Vídeo -> GetVideoComponents -> CreateVideo de novo (fps, bit_depth e color_space "
+    "ligados como combos) -> componentes: os seis quadros voltam idênticos e o fps vira "
+    "largura via matemática."
+)
 def video_round_trip_frames(w):
     video = w.add_node(CreateVideo, images=batch_of(w, SIX), fps=6.0).output["VIDEO"]
     parts = w.add_node(GetVideoComponents, video=video).output
@@ -2455,16 +2795,22 @@ def h264_profile(data: bytes) -> int:
     return data[position + 5]
 
 
-@case("VideoTemporalCrop e VideoFrameSample (uniform e head) sobre 16 quadros de cores "
-      "diferentes: contagem de quadros e cores amostradas conferidas.")
+@case(
+    "VideoTemporalCrop e VideoFrameSample (uniform e head) sobre 16 quadros de cores "
+    "diferentes: contagem de quadros e cores amostradas conferidas."
+)
 def temporal_crop_and_frame_sample(w):
     colors = hues(16)
     video = w.add_node(CreateVideo, images=batch_of(w, colors), fps=8.0).output["VIDEO"]
     cropped = w.add_node(VideoTemporalCrop, video=video, start_frame=4, length=6)
-    uniform = w.add_node(VideoFrameSample, video=video, num_frames=4, strategy="uniform")
+    uniform = w.add_node(
+        VideoFrameSample, video=video, num_frames=4, strategy="uniform"
+    )
     head = w.add_node(VideoFrameSample, video=video, num_frames=3, strategy="head")
     for label, node in (("cropped", cropped), ("uniform", uniform), ("head", head)):
-        frames = w.add_node(GetVideoComponents, video=node.output["video"]).output["images"]
+        frames = w.add_node(GetVideoComponents, video=node.output["video"]).output[
+            "images"
+        ]
         save(w, frames, label)
 
     def check(out):
@@ -2478,12 +2824,24 @@ def temporal_crop_and_frame_sample(w):
     return check
 
 
-@case("O nó 'Video Slice' (class_type com espaço) corta 1 s a partir de 0,5 s de um vídeo "
-      "de 2 s; a fatia é salva em MP4 e decomposta em quadros.")
+@case(
+    "O nó 'Video Slice' (class_type com espaço) corta 1 s a partir de 0,5 s de um vídeo "
+    "de 2 s; a fatia é salva em MP4 e decomposta em quadros."
+)
 def video_slice_node(w):
-    video = w.add_node(CreateVideo, images=batch_of(w, hues(16)), fps=8.0).output["VIDEO"]
-    sliced = w.add_node(VideoSlice, video=video, start_time=0.5, duration=1.0).output["VIDEO"]
-    w.add_node(SaveVideo, video=sliced, filename_prefix="slice", format="mp4", format_codec="h264")
+    video = w.add_node(CreateVideo, images=batch_of(w, hues(16)), fps=8.0).output[
+        "VIDEO"
+    ]
+    sliced = w.add_node(VideoSlice, video=video, start_time=0.5, duration=1.0).output[
+        "VIDEO"
+    ]
+    w.add_node(
+        SaveVideo,
+        video=sliced,
+        filename_prefix="slice",
+        format="mp4",
+        format_codec="h264",
+    )
     save(w, w.add_node(GetVideoComponents, video=sliced).output["images"], "frame")
 
     def check(out):
@@ -2493,14 +2851,25 @@ def video_slice_node(w):
     return check
 
 
-@case("Áudio silencioso com AudioAdjustVolume e TrimAudioDuration entra no CreateVideo; o "
-      "MP4 sai com faixa AAC e o WebM com Opus.")
+@case(
+    "Áudio silencioso com AudioAdjustVolume e TrimAudioDuration entra no CreateVideo; o "
+    "MP4 sai com faixa AAC e o WebM com Opus."
+)
 def video_with_audio_tracks(w):
-    audio = w.add_node(EmptyAudio, duration=1.0, sample_rate=44100, channels=2).output["AUDIO"]
+    audio = w.add_node(EmptyAudio, duration=1.0, sample_rate=44100, channels=2).output[
+        "AUDIO"
+    ]
     audio = w.add_node(AudioAdjustVolume, audio=audio, volume=-6).output["AUDIO"]
-    audio = w.add_node(TrimAudioDuration, audio=audio, start_index=0.0, duration=1.0).output["AUDIO"]
-    video = w.add_node(CreateVideo, images=batch_of(w, hues(8), 128), fps=8.0, audio=audio)
-    for label, container, codec in (("with_aac", "mp4", "h264"), ("with_opus", "webm", "av1")):
+    audio = w.add_node(
+        TrimAudioDuration, audio=audio, start_index=0.0, duration=1.0
+    ).output["AUDIO"]
+    video = w.add_node(
+        CreateVideo, images=batch_of(w, hues(8), 128), fps=8.0, audio=audio
+    )
+    for label, container, codec in (
+        ("with_aac", "mp4", "h264"),
+        ("with_opus", "webm", "av1"),
+    ):
         w.add_node(
             SaveVideo,
             video=video.output["VIDEO"],
@@ -2516,26 +2885,51 @@ def video_with_audio_tracks(w):
     return check
 
 
-@case("Cadeia de áudio com SplitAudioChannels, JoinAudioChannels, AudioConcat, AudioMerge, "
-      "AudioEqualizer3Band e TrimAudioDuration, gravada num MKV com H.264 + AAC.")
+@case(
+    "Cadeia de áudio com SplitAudioChannels, JoinAudioChannels, AudioConcat, AudioMerge, "
+    "AudioEqualizer3Band e TrimAudioDuration, gravada num MKV com H.264 + AAC."
+)
 def audio_channel_ops_into_video(w):
-    first = w.add_node(EmptyAudio, duration=2.0, sample_rate=48000, channels=2).output["AUDIO"]
+    first = w.add_node(EmptyAudio, duration=2.0, sample_rate=48000, channels=2).output[
+        "AUDIO"
+    ]
     channels = w.add_node(SplitAudioChannels, audio=first).output
-    joined = w.add_node(JoinAudioChannels, audio_left=channels["left"], audio_right=channels["right"])
-    second = w.add_node(EmptyAudio, duration=1.0, sample_rate=48000, channels=2).output["AUDIO"]
-    longer = w.add_node(AudioConcat, audio1=joined.output["audio"], audio2=second, direction="after")
+    joined = w.add_node(
+        JoinAudioChannels, audio_left=channels["left"], audio_right=channels["right"]
+    )
+    second = w.add_node(EmptyAudio, duration=1.0, sample_rate=48000, channels=2).output[
+        "AUDIO"
+    ]
+    longer = w.add_node(
+        AudioConcat, audio1=joined.output["audio"], audio2=second, direction="after"
+    )
     merged = w.add_node(
-        AudioMerge, audio1=longer.output["AUDIO"], audio2=longer.output["AUDIO"], merge_method="mean"
+        AudioMerge,
+        audio1=longer.output["AUDIO"],
+        audio2=longer.output["AUDIO"],
+        merge_method="mean",
     )
     shaped = w.add_node(
-        AudioEqualizer3Band, audio=merged.output["AUDIO"], low_gain_dB=3.0, high_gain_dB=-3.0
+        AudioEqualizer3Band,
+        audio=merged.output["AUDIO"],
+        low_gain_dB=3.0,
+        high_gain_dB=-3.0,
     )
-    trimmed = w.add_node(TrimAudioDuration, audio=shaped.output["AUDIO"], start_index=0.5, duration=1.5)
+    trimmed = w.add_node(
+        TrimAudioDuration, audio=shaped.output["AUDIO"], start_index=0.5, duration=1.5
+    )
     video = w.add_node(
-        CreateVideo, images=batch_of(w, hues(12), 128), fps=8.0, audio=trimmed.output["AUDIO"]
+        CreateVideo,
+        images=batch_of(w, hues(12), 128),
+        fps=8.0,
+        audio=trimmed.output["AUDIO"],
     )
     w.add_node(
-        SaveVideo, video=video.output["VIDEO"], filename_prefix="mixed", format="mkv", format_codec="h264"
+        SaveVideo,
+        video=video.output["VIDEO"],
+        filename_prefix="mixed",
+        format="mkv",
+        format_codec="h264",
     )
 
     def check(out):
@@ -2545,15 +2939,19 @@ def audio_channel_ops_into_video(w):
     return check
 
 
-@case("Quatro rotações dos quadrantes viram os quadros de um vídeo; GetVideoComponents + "
-      "ImageFromBatch recuperam o 2º e o último quadro exatos, e um WEBP animado.")
+@case(
+    "Quatro rotações dos quadrantes viram os quadros de um vídeo; GetVideoComponents + "
+    "ImageFromBatch recuperam o 2º e o último quadro exatos, e um WEBP animado."
+)
 def rotation_frames_through_video(w):
     image = quadrants(w, 64)
     rotated = [image] + [rotate(w, image, rotation) for rotation in ROTATIONS]
     sheet = rotated[0]
     for frame in rotated[1:]:
         sheet = stitch(w, sheet, frame)
-    frames = w.add_node(RebatchImages, images=tiles_of(w, sheet, 64), batch_size=4).output["IMAGE"]
+    frames = w.add_node(
+        RebatchImages, images=tiles_of(w, sheet, 64), batch_size=4
+    ).output["IMAGE"]
     video = w.add_node(CreateVideo, images=frames, fps=4.0).output["VIDEO"]
     parts = w.add_node(GetVideoComponents, video=video).output["images"]
     second = w.add_node(ImageFromBatch, image=parts, batch_index=1, length=1)
@@ -2561,22 +2959,35 @@ def rotation_frames_through_video(w):
     save(w, second.output["IMAGE"], "second")
     save(w, last.output["IMAGE"], "last")
     w.add_node(
-        SaveAnimatedWEBP, images=parts, method="fastest", filename_prefix="spin", fps=4.0,
-        lossless=True, quality=90,
+        SaveAnimatedWEBP,
+        images=parts,
+        method="fastest",
+        filename_prefix="spin",
+        fps=4.0,
+        lossless=True,
+        quality=90,
     )
 
     def check(out):
         for label, rotation in (("second", "90 degrees"), ("last", "270 degrees")):
             picture = out.picture(label)
             for x, y in quarter_points(64, 64):
-                assert_pixel(picture, x, y, quadrant_color(*rotated_source(rotation, x, y, 64, 64), 64, 64), 0)
+                assert_pixel(
+                    picture,
+                    x,
+                    y,
+                    quadrant_color(*rotated_source(rotation, x, y, 64, 64), 64, 64),
+                    0,
+                )
         assert webp_info(out.one("spin")) == ((64, 64), 4)
 
     return check
 
 
-@case("CreateVideo com bit_depth 10, decomposto e recriado com os combos bit_depth e "
-      "color_space do GetVideoComponents: o MP4 sai em H.264 High 10, o de 8 bits não.")
+@case(
+    "CreateVideo com bit_depth 10, decomposto e recriado com os combos bit_depth e "
+    "color_space do GetVideoComponents: o MP4 sai em H.264 High 10, o de 8 bits não."
+)
 def video_bit_depth_and_color_space(w):
     frames = batch_of(w, hues(6), 128)
     deep = w.add_node(
@@ -2590,9 +3001,17 @@ def video_bit_depth_and_color_space(w):
         bit_depth=parts["bit_depth"],
         color_space=parts["color_space"],
     ).output["VIDEO"]
-    shallow = w.add_node(CreateVideo, images=frames, fps=10.0, bit_depth=8).output["VIDEO"]
+    shallow = w.add_node(CreateVideo, images=frames, fps=10.0, bit_depth=8).output[
+        "VIDEO"
+    ]
     for label, video in (("deep", deep), ("rebuilt", rebuilt), ("shallow", shallow)):
-        w.add_node(SaveVideo, video=video, filename_prefix=label, format="mp4", format_codec="h264")
+        w.add_node(
+            SaveVideo,
+            video=video,
+            filename_prefix=label,
+            format="mp4",
+            format_codec="h264",
+        )
 
     def check(out):
         for label in ("deep", "rebuilt", "shallow"):
@@ -2618,7 +3037,12 @@ API_JSON = {
     "frame": {
         "class_type": "ImagePadForOutpaint",
         "inputs": {
-            "image": ["turn", 0], "left": 8, "top": 8, "right": 8, "bottom": 8, "feathering": 0,
+            "image": ["turn", 0],
+            "left": 8,
+            "top": 8,
+            "right": 8,
+            "bottom": 8,
+            "feathering": 0,
         },
     },
     "save": {
@@ -2628,8 +3052,10 @@ API_JSON = {
 }
 
 
-@case("JSON no formato da API com ids em texto carregado com load_workflow, alterado com "
-      "update_node e estendido com add_node usando get_node_output.")
+@case(
+    "JSON no formato da API com ids em texto carregado com load_workflow, alterado com "
+    "update_node e estendido com add_node usando get_node_output."
+)
 def loaded_api_json_runs(w):
     w.load_workflow(json.loads(json.dumps(API_JSON)))
     w.update_node("canvas", color=ORANGE)
@@ -2648,8 +3074,10 @@ def loaded_api_json_runs(w):
     return check
 
 
-@case("update_node troca o link de entrada e a cor depois de montado, e uma atribuição "
-      "direta (node.width = 56) passa pelas mesmas validações.")
+@case(
+    "update_node troca o link de entrada e a cor depois de montado, e uma atribuição "
+    "direta (node.width = 56) passa pelas mesmas validações."
+)
 def update_node_rewires_inputs(w):
     red = w.add_node(EmptyImage, width=16, height=16, color=RED)
     blue = w.add_node(EmptyImage, width=40, height=24, color=BLUE)
@@ -2667,13 +3095,17 @@ def update_node_rewires_inputs(w):
     return check
 
 
-@case("remove_node apaga um ramo inteiro (folha primeiro); remover um nó com dependentes "
-      "é recusado; só o ramo que ficou volta do ComfyUI.")
+@case(
+    "remove_node apaga um ramo inteiro (folha primeiro); remover um nó com dependentes "
+    "é recusado; só o ramo que ficou volta do ComfyUI."
+)
 def remove_node_prunes_branch(w):
     base = solid(w, 24, 24, CYAN)
     save(w, base, "kept")
     flipped = w.add_node(ImageFlip, image=base, flip_method=FLIPS[0])
-    dropped = w.add_node(SaveImage, images=flipped.output["IMAGE"], filename_prefix="dropped")
+    dropped = w.add_node(
+        SaveImage, images=flipped.output["IMAGE"], filename_prefix="dropped"
+    )
     with pytest.raises(NodeHasDependentsError):
         w.remove_node(flipped.node_id)
     w.remove_node(dropped.node_id)
@@ -2686,33 +3118,52 @@ def remove_node_prunes_branch(w):
     return check
 
 
-@case("Pipeline Framed (GetImageSize + matemática + EmptyImage + composite) aplicada três "
-      "vezes em cadeia: as molduras ficam aninhadas na ordem certa.")
+@case(
+    "Pipeline Framed (GetImageSize + matemática + EmptyImage + composite) aplicada três "
+    "vezes em cadeia: as molduras ficam aninhadas na ordem certa."
+)
 def nested_framed_pipelines(w):
     image = solid(w, 32, 32, ORANGE)
     for border, color in ((4, WHITE), (8, BLACK), (2, RED)):
-        image = w.add_pipeline(Framed, image=image, border=border, color=color).output["IMAGE"]
+        image = w.add_pipeline(Framed, image=image, border=border, color=color).output[
+            "IMAGE"
+        ]
     save(w, image, "framed")
 
     def check(out):
         framed = out.picture("framed")
         assert framed.size == (60, 60)
-        for x, y, color in ((0, 0, RED), (1, 30, RED), (5, 5, BLACK), (12, 12, WHITE), (30, 30, ORANGE)):
+        for x, y, color in (
+            (0, 0, RED),
+            (1, 30, RED),
+            (5, 5, BLACK),
+            (12, 12, WHITE),
+            (30, 30, ORANGE),
+        ):
             assert_pixel(framed, x, y, color)
 
     return check
 
 
-@case("Pipeline Spotlight com duas saídas (IMAGE e MASK): GrowMask, MaskComposite com "
-      "posição calculada e composite sobre fundo preto.")
+@case(
+    "Pipeline Spotlight com duas saídas (IMAGE e MASK): GrowMask, MaskComposite com "
+    "posição calculada e composite sobre fundo preto."
+)
 def pipeline_with_two_outputs(w):
-    spotlight = w.add_pipeline(Spotlight, image=solid(w, 64, 64, YELLOW), size=16, grow=4)
+    spotlight = w.add_pipeline(
+        Spotlight, image=solid(w, 64, 64, YELLOW), size=16, grow=4
+    )
     save(w, spotlight.output["IMAGE"], "lit")
     save(w, mask_image(w, spotlight.output["MASK"]), "mask")
 
     def check(out):
         lit = out.picture("lit")
-        for x, y, color in ((32, 32, YELLOW), (21, 21, YELLOW), (18, 18, BLACK), (45, 45, BLACK)):
+        for x, y, color in (
+            (32, 32, YELLOW),
+            (21, 21, YELLOW),
+            (18, 18, BLACK),
+            (45, 45, BLACK),
+        ):
             assert_pixel(lit, x, y, color)
         mask = out.picture("mask")
         assert_pixel(mask, 20, 20, WHITE)
@@ -2721,8 +3172,10 @@ def pipeline_with_two_outputs(w):
     return check
 
 
-@case("Workflow montado, exportado em JSON, recarregado em outro Workflow, alterado com "
-      "update_node e estendido antes de rodar.")
+@case(
+    "Workflow montado, exportado em JSON, recarregado em outro Workflow, alterado com "
+    "update_node e estendido antes de rodar."
+)
 def reload_then_mutate(w):
     source = Workflow()
     image = quadrants(source, 32)
@@ -2743,8 +3196,10 @@ def reload_then_mutate(w):
     return check
 
 
-@case("Um único job com 24 SaveImage de cores diferentes (roda de matizes): os 24 arquivos "
-      "voltam, cada um com a sua cor exata.")
+@case(
+    "Um único job com 24 SaveImage de cores diferentes (roda de matizes): os 24 arquivos "
+    "voltam, cada um com a sua cor exata."
+)
 def two_dozen_outputs_in_one_job(w):
     colors = hues(24)
     for index, color in enumerate(colors):
@@ -2757,8 +3212,10 @@ def two_dozen_outputs_in_one_job(w):
     return check
 
 
-@case("Cadeia de 40 nós alternando ImageInvert e ImageFlip: com número par de cada, a saída "
-      "tem de ser idêntica à entrada.")
+@case(
+    "Cadeia de 40 nós alternando ImageInvert e ImageFlip: com número par de cada, a saída "
+    "tem de ser idêntica à entrada."
+)
 def forty_node_chain_returns_to_start(w):
     image = quadrants(w, 32, (ORANGE, CYAN, MAGENTA, GRAY))
     save(w, image, "start")
@@ -2778,83 +3235,144 @@ def forty_node_chain_returns_to_start(w):
 # ---------------------------------------------------------------- failures
 
 
-@rejected("Largura 0 num EmptyImage: a biblioteca recusa e o ComfyUI também "
-          "('smaller than min').", library_says="width", comfy_says="smaller than min of 1")
+@rejected(
+    "Largura 0 num EmptyImage: a biblioteca recusa e o ComfyUI também "
+    "('smaller than min').",
+    library_says="width",
+    comfy_says="smaller than min of 1",
+)
 def comfy_rejects_value_below_minimum():
     return {
-        "1": {"class_type": "EmptyImage", "inputs": {"width": 0, "height": 8, "batch_size": 1, "color": 0}},
-        "2": {"class_type": "SaveImage", "inputs": {"images": ["1", 0], "filename_prefix": "never"}},
+        "1": {
+            "class_type": "EmptyImage",
+            "inputs": {"width": 0, "height": 8, "batch_size": 1, "color": 0},
+        },
+        "2": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["1", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@rejected("blend_mode inexistente no ImageBlend: recusado pela biblioteca e pelo ComfyUI "
-          "('Value not in list').", library_says="blend_mode", comfy_says="Value not in list")
+@rejected(
+    "blend_mode inexistente no ImageBlend: recusado pela biblioteca e pelo ComfyUI "
+    "('Value not in list').",
+    library_says="blend_mode",
+    comfy_says="Value not in list",
+)
 def comfy_rejects_unknown_combo_value():
     return {
-        "1": {"class_type": "EmptyImage", "inputs": {"width": 8, "height": 8, "batch_size": 1, "color": 0}},
+        "1": {
+            "class_type": "EmptyImage",
+            "inputs": {"width": 8, "height": 8, "batch_size": 1, "color": 0},
+        },
         "2": {
             "class_type": "ImageBlend",
-            "inputs": {"image1": ["1", 0], "image2": ["1", 0], "blend_factor": 0.5, "blend_mode": "glow"},
+            "inputs": {
+                "image1": ["1", 0],
+                "image2": ["1", 0],
+                "blend_factor": 0.5,
+                "blend_mode": "glow",
+            },
         },
-        "3": {"class_type": "SaveImage", "inputs": {"images": ["2", 0], "filename_prefix": "never"}},
+        "3": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["2", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@rejected("ImageInvert sem a entrada obrigatória image: recusado pelos dois lados "
-          "('Required input is missing').", library_says="image", comfy_says="Required input is missing")
+@rejected(
+    "ImageInvert sem a entrada obrigatória image: recusado pelos dois lados "
+    "('Required input is missing').",
+    library_says="image",
+    comfy_says="Required input is missing",
+)
 def comfy_rejects_missing_required_input():
     return {
         "1": {"class_type": "ImageInvert", "inputs": {}},
-        "2": {"class_type": "SaveImage", "inputs": {"images": ["1", 0], "filename_prefix": "never"}},
+        "2": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["1", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@rejected("class_type que não existe: a biblioteca e o ComfyUI apontam o nó desconhecido.",
-          library_says="NotARealNode", comfy_says="NotARealNode")
+@rejected(
+    "class_type que não existe: a biblioteca e o ComfyUI apontam o nó desconhecido.",
+    library_says="NotARealNode",
+    comfy_says="NotARealNode",
+)
 def comfy_rejects_unknown_node_type():
     return {
         "1": {"class_type": "NotARealNode", "inputs": {}},
-        "2": {"class_type": "SaveImage", "inputs": {"images": ["1", 0], "filename_prefix": "never"}},
+        "2": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["1", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@rejected("Link para um nó que não está no workflow: recusado pela biblioteca e o ComfyUI "
-          "falha ao validar.", library_says="ghost", comfy_says="Exception when validating node")
+@rejected(
+    "Link para um nó que não está no workflow: recusado pela biblioteca e o ComfyUI "
+    "falha ao validar.",
+    library_says="ghost",
+    comfy_says="Exception when validating node",
+)
 def comfy_rejects_link_to_missing_node():
     return {
-        "1": {"class_type": "SaveImage", "inputs": {"images": ["ghost", 0], "filename_prefix": "never"}},
+        "1": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["ghost", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@rejected("Imagem ligada numa entrada MASK: a biblioteca e o ComfyUI recusam o tipo errado.",
-          library_says="which is IMAGE, but the input takes MASK",
-          comfy_says="received_type(IMAGE) mismatch input_type(MASK)")
+@rejected(
+    "Imagem ligada numa entrada MASK: a biblioteca e o ComfyUI recusam o tipo errado.",
+    library_says="which is IMAGE, but the input takes MASK",
+    comfy_says="received_type(IMAGE) mismatch input_type(MASK)",
+)
 def comfy_rejects_image_into_mask():
     return {
-        "1": {"class_type": "EmptyImage", "inputs": {"width": 8, "height": 8, "batch_size": 1, "color": 0}},
+        "1": {
+            "class_type": "EmptyImage",
+            "inputs": {"width": 8, "height": 8, "batch_size": 1, "color": 0},
+        },
         "2": {"class_type": "MaskToImage", "inputs": {"mask": ["1", 0]}},
-        "3": {"class_type": "SaveImage", "inputs": {"images": ["2", 0], "filename_prefix": "never"}},
+        "3": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["2", 0], "filename_prefix": "never"},
+        },
     }
 
 
-@case("Divisão por zero no ComfyMathExpression: a biblioteca aceita o grafo, mas o ComfyUI "
-      "falha na execução com a mensagem do Python.", fails_with="division by zero")
+@case(
+    "Divisão por zero no ComfyMathExpression: a biblioteca aceita o grafo, mas o ComfyUI "
+    "falha na execução com a mensagem do Python.",
+    fails_with="division by zero",
+)
 def division_by_zero_fails_at_runtime(w):
     save(w, solid(w, calc(w, "a / b", a=64, b=0)["INT"], 8, RED), "never")
 
 
-@case("ComfyNumberConvert recebe o texto 'doze': falha em tempo de execução com a mensagem "
-      "do ComfyUI.", fails_with="Cannot convert string to number")
+@case(
+    "ComfyNumberConvert recebe o texto 'doze': falha em tempo de execução com a mensagem "
+    "do ComfyUI.",
+    fails_with="Cannot convert string to number",
+)
 def number_convert_rejects_text(w):
     text = w.add_node(PrimitiveString, value="doze").output["STRING"]
     number = w.add_node(ComfyNumberConvert, value=text).output["INT"]
     save(w, solid(w, number, 8, RED), "never")
 
 
-@case("Placeholder '__list__' nos loaders de checkpoint, LoRA, VAE, upscale, modelo de "
-      "difusão e text encoders (DualCLIPLoader): o worker responde com o inventário de "
-      "cada pasta (registrado no result.json).",
-      fails_with=(CHECKPOINT, "diffusion_models", "text_encoders"))
+@case(
+    "Placeholder '__list__' nos loaders de checkpoint, LoRA, VAE, upscale, modelo de "
+    "difusão e text encoders (DualCLIPLoader): o worker responde com o inventário de "
+    "cada pasta (registrado no result.json).",
+    fails_with=(CHECKPOINT, "diffusion_models", "text_encoders"),
+)
 def worker_lists_models_on_placeholder(w):
     model = w.add_node(CheckpointLoaderSimple, ckpt_name="__list__")
     lora = w.add_node(
@@ -2881,33 +3399,55 @@ def worker_lists_models_on_placeholder(w):
         w.add_node(PreviewAny, source=output)
 
 
-@case("Checkpoint inexistente: o worker recusa antes de rodar, nomeia o arquivo que faltou "
-      "e lista os checkpoints disponíveis.",
-      fails_with=("nao_existe.safetensors", CHECKPOINT))
+@case(
+    "Checkpoint inexistente: o worker recusa antes de rodar, nomeia o arquivo que faltou "
+    "e lista os checkpoints disponíveis.",
+    fails_with=("nao_existe.safetensors", CHECKPOINT),
+)
 def missing_checkpoint_is_reported(w):
     loader = w.add_node(CheckpointLoaderSimple, ckpt_name="nao_existe.safetensors")
     positive = prompt(w, loader.output["CLIP"], "a cat")
     negative = prompt(w, loader.output["CLIP"], NEGATIVE)
-    latent = ksample(w, loader.output["MODEL"], positive, negative, empty_latent(w, 512, 512))
+    latent = ksample(
+        w, loader.output["MODEL"], positive, negative, empty_latent(w, 512, 512)
+    )
     save(w, decode(w, latent, loader.output["VAE"]), "never")
 
 
 # ---------------------------------------------------------------- SDXL
 
 
-@case("SDXL com quatro combinações de sampler/scheduler (euler, dpmpp_2m, dpmpp_2m_sde, "
-      "uni_pc) e uma folha de contato 2x2 montada com ImageScale + ImageStitch.", gpu=True)
+@case(
+    "SDXL com quatro combinações de sampler/scheduler (euler, dpmpp_2m, dpmpp_2m_sde, "
+    "uni_pc) e uma folha de contato 2x2 montada com ImageScale + ImageStitch.",
+    gpu=True,
+)
 def sdxl_sampler_and_scheduler_sheet(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "a lighthouse on a rocky coast at sunset, oil painting")
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 768, 768)
-    combos = (("euler", "normal"), ("dpmpp_2m", "karras"), ("dpmpp_2m_sde", "exponential"),
-              ("uni_pc", "sgm_uniform"))
+    combos = (
+        ("euler", "normal"),
+        ("dpmpp_2m", "karras"),
+        ("dpmpp_2m_sde", "exponential"),
+        ("uni_pc", "sgm_uniform"),
+    )
     small = []
     for sampler, scheduler in combos:
-        image = decode(w, ksample(w, model, positive, negative, latent, sampler=sampler,
-                                  scheduler=scheduler), vae)
+        image = decode(
+            w,
+            ksample(
+                w,
+                model,
+                positive,
+                negative,
+                latent,
+                sampler=sampler,
+                scheduler=scheduler,
+            ),
+            vae,
+        )
         save(w, image, f"{sampler}_{scheduler}")
         small.append(scale(w, image, "area", 384, 384))
     top, bottom = stitch(w, small[0], small[1]), stitch(w, small[2], small[3])
@@ -2923,21 +3463,28 @@ def sdxl_sampler_and_scheduler_sheet(w):
     return check
 
 
-@case("Semente reprodutível no SDXL: dois KSampler com a mesma semente dão o mesmo "
-      "resultado e uma semente diferente muda a imagem.", gpu=True)
+@case(
+    "Semente reprodutível no SDXL: dois KSampler com a mesma semente dão o mesmo "
+    "resultado e uma semente diferente muda a imagem.",
+    gpu=True,
+)
 def sdxl_seed_reproducibility(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "a bowl of ramen on a wooden table, food photography")
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 640, 640)
     for label, seed in (("seed_a", 101), ("seed_a_again", 101), ("seed_b", 202)):
-        image = decode(w, ksample(w, model, positive, negative, latent, seed=seed, steps=12), vae)
+        image = decode(
+            w, ksample(w, model, positive, negative, latent, seed=seed, steps=12), vae
+        )
         thumbnail(w, image, label, 32)
         if label == "seed_a":
             save(w, image, "full")
 
     def check(out):
-        first, again, other = (out.picture(label) for label in ("seed_a", "seed_a_again", "seed_b"))
+        first, again, other = (
+            out.picture(label) for label in ("seed_a", "seed_a_again", "seed_b")
+        )
         assert mean_difference(first, again) < 1.5
         assert mean_difference(first, other) > 8
         assert_generated(out.one("full"), (640, 640))
@@ -2945,15 +3492,20 @@ def sdxl_seed_reproducibility(w):
     return check
 
 
-@case("O prompt chega ao modelo: 'parede vermelha' sai avermelhada e 'parede azul' sai "
-      "azulada, medido na cor média de miniaturas.", gpu=True)
+@case(
+    "O prompt chega ao modelo: 'parede vermelha' sai avermelhada e 'parede azul' sai "
+    "azulada, medido na cor média de miniaturas.",
+    gpu=True,
+)
 def sdxl_prompt_reaches_the_model(w):
     model, clip, vae = sdxl(w)
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 768, 768)
     for label, color in (("red_wall", "red"), ("blue_wall", "blue")):
         text = f"a plain wall painted bright {color}, solid {color} color, {color}, minimalism"
-        image = decode(w, ksample(w, model, prompt(w, clip, text), negative, latent), vae)
+        image = decode(
+            w, ksample(w, model, prompt(w, clip, text), negative, latent), vae
+        )
         save(w, image, label)
         thumbnail(w, image, f"{label}_thumb", 8)
 
@@ -2966,19 +3518,28 @@ def sdxl_prompt_reaches_the_model(w):
     return check
 
 
-@case("Lote de 4 latentes no SDXL: LatentFromBatch pega o 2º e o 3º, RepeatLatentBatch "
-      "duplica o 4º; as miniaturas batem com as do lote original.", gpu=True)
+@case(
+    "Lote de 4 latentes no SDXL: LatentFromBatch pega o 2º e o 3º, RepeatLatentBatch "
+    "duplica o 4º; as miniaturas batem com as do lote original.",
+    gpu=True,
+)
 def sdxl_batch_and_latent_picks(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "a hot air balloon over green hills, watercolor")
     negative = prompt(w, clip, NEGATIVE)
-    batch = ksample(w, model, positive, negative, empty_latent(w, 576, 576, batch=4), steps=12)
+    batch = ksample(
+        w, model, positive, negative, empty_latent(w, 576, 576, batch=4), steps=12
+    )
     images = decode(w, batch, vae)
     save(w, images, "batch")
     thumbnail(w, images, "batch_thumb", 24)
-    picked = w.add_node(LatentFromBatch, samples=batch, batch_index=1, length=2).output["LATENT"]
+    picked = w.add_node(LatentFromBatch, samples=batch, batch_index=1, length=2).output[
+        "LATENT"
+    ]
     thumbnail(w, decode(w, picked, vae), "picked_thumb", 24)
-    fourth = w.add_node(LatentFromBatch, samples=batch, batch_index=3, length=1).output["LATENT"]
+    fourth = w.add_node(LatentFromBatch, samples=batch, batch_index=3, length=1).output[
+        "LATENT"
+    ]
     repeated = w.add_node(RepeatLatentBatch, samples=fourth, amount=2).output["LATENT"]
     thumbnail(w, decode(w, repeated, vae), "repeated_thumb", 24)
 
@@ -2997,8 +3558,11 @@ def sdxl_batch_and_latent_picks(w):
     return check
 
 
-@case("KSamplerAdvanced em duas etapas (0-12 com ruído restante, 12-20 sem novo ruído) dá "
-      "o mesmo resultado que uma passada única de 20 passos com euler.", gpu=True)
+@case(
+    "KSamplerAdvanced em duas etapas (0-12 com ruído restante, 12-20 sem novo ruído) dá "
+    "o mesmo resultado que uma passada única de 20 passos com euler.",
+    gpu=True,
+)
 def sdxl_two_stage_advanced_matches_single_pass(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "a red fox in the snow, wildlife photography")
@@ -3034,17 +3598,24 @@ def sdxl_two_stage_advanced_matches_single_pass(w):
     def check(out):
         assert_generated(out.one("two_stage"), (640, 640))
         assert_generated(out.one("single"), (640, 640))
-        difference = mean_difference(out.picture("two_stage_thumb"), out.picture("single_thumb"))
+        difference = mean_difference(
+            out.picture("two_stage_thumb"), out.picture("single_thumb")
+        )
         assert difference < 3, difference
 
     return check
 
 
-@case("SamplerCustom com KarrasScheduler dividido por SplitSigmas em duas metades (a 2ª sem "
-      "ruído) equivale à passada completa; o scheduler exponencial difere.", gpu=True)
+@case(
+    "SamplerCustom com KarrasScheduler dividido por SplitSigmas em duas metades (a 2ª sem "
+    "ruído) equivale à passada completa; o scheduler exponencial difere.",
+    gpu=True,
+)
 def sdxl_sampler_custom_split_sigmas(w):
     model, clip, vae = sdxl(w)
-    positive = prompt(w, clip, "a glass terrarium with moss and tiny mushrooms, macro photo")
+    positive = prompt(
+        w, clip, "a glass terrarium with moss and tiny mushrooms, macro photo"
+    )
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 640, 640)
     sampler = w.add_node(KSamplerSelect, sampler_name="euler").output["SAMPLER"]
@@ -3066,7 +3637,9 @@ def sdxl_sampler_custom_split_sigmas(w):
         ).output
 
     first = custom(latent, halves["high_sigmas"], True)
-    split = decode(w, custom(first["output"], halves["low_sigmas"], False)["output"], vae)
+    split = decode(
+        w, custom(first["output"], halves["low_sigmas"], False)["output"], vae
+    )
     full = decode(w, custom(latent, sigmas, True)["output"], vae)
     exponential = w.add_node(ExponentialScheduler, steps=16).output["SIGMAS"]
     other = decode(w, custom(latent, exponential, True)["output"], vae)
@@ -3078,15 +3651,20 @@ def sdxl_sampler_custom_split_sigmas(w):
     def check(out):
         assert_generated(out.one("split"), (640, 640))
         assert png_size(out.one("halfway_preview")) == (640, 640)
-        split, full, other = (out.picture(f"{label}_thumb") for label in ("split", "full", "exponential"))
+        split, full, other = (
+            out.picture(f"{label}_thumb") for label in ("split", "full", "exponential")
+        )
         assert mean_difference(split, full) < 3
         assert mean_difference(full, other) > 1
 
     return check
 
 
-@case("SamplerCustomAdvanced com três guiders (CFGGuider, DualCFGGuider, BasicGuider), "
-      "samplers e schedulers diferentes: três imagens distintas.", gpu=True)
+@case(
+    "SamplerCustomAdvanced com três guiders (CFGGuider, DualCFGGuider, BasicGuider), "
+    "samplers e schedulers diferentes: três imagens distintas.",
+    gpu=True,
+)
 def sdxl_custom_advanced_guiders(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "an astronaut riding a horse on the moon, digital art")
@@ -3095,7 +3673,9 @@ def sdxl_custom_advanced_guiders(w):
     latent = empty_latent(w, 640, 640)
     noise = w.add_node(RandomNoise, noise_seed=21).output["NOISE"]
     guiders = {
-        "cfg": w.add_node(CFGGuider, model=model, positive=positive, negative=negative, cfg=6.0),
+        "cfg": w.add_node(
+            CFGGuider, model=model, positive=positive, negative=negative, cfg=6.0
+        ),
         "dual": w.add_node(
             DualCFGGuider,
             model=model,
@@ -3109,7 +3689,9 @@ def sdxl_custom_advanced_guiders(w):
         "basic": w.add_node(BasicGuider, model=model, conditioning=positive),
     }
     samplers = {
-        "cfg": w.add_node(SamplerEulerAncestral, eta=1.0, s_noise=1.0).output["SAMPLER"],
+        "cfg": w.add_node(SamplerEulerAncestral, eta=1.0, s_noise=1.0).output[
+            "SAMPLER"
+        ],
         "dual": w.add_node(
             SamplerDPMPP_2M_SDE, solver_type="midpoint", noise_device="gpu"
         ).output["SAMPLER"],
@@ -3117,7 +3699,9 @@ def sdxl_custom_advanced_guiders(w):
     }
     schedulers = {"cfg": "karras", "dual": "exponential", "basic": "sgm_uniform"}
     for label, guider in guiders.items():
-        sigmas = w.add_node(BasicScheduler, model=model, scheduler=schedulers[label], steps=14)
+        sigmas = w.add_node(
+            BasicScheduler, model=model, scheduler=schedulers[label], steps=14
+        )
         sampled = w.add_node(
             SamplerCustomAdvanced,
             noise=noise,
@@ -3137,15 +3721,28 @@ def sdxl_custom_advanced_guiders(w):
     return check
 
 
-@case("img2img no SDXL a partir de quadrantes coloridos desenhados no próprio ComfyUI "
-      "(denoise 0,5): o layout de cores sobrevive à geração.", gpu=True)
+@case(
+    "img2img no SDXL a partir de quadrantes coloridos desenhados no próprio ComfyUI "
+    "(denoise 0,5): o layout de cores sobrevive à geração.",
+    gpu=True,
+)
 def sdxl_img2img_keeps_color_layout(w):
     model, clip, vae = sdxl(w)
     colors = (RED, GREEN, BLUE, YELLOW)
     source = quadrants(w, 768, colors)
     latent = w.add_node(VAEEncode, pixels=source, vae=vae).output["LATENT"]
-    positive = prompt(w, clip, "an abstract painting made of four large color blocks, thick brush strokes")
-    image = decode(w, ksample(w, model, positive, prompt(w, clip, NEGATIVE), latent, denoise=0.5, steps=16), vae)
+    positive = prompt(
+        w,
+        clip,
+        "an abstract painting made of four large color blocks, thick brush strokes",
+    )
+    image = decode(
+        w,
+        ksample(
+            w, model, positive, prompt(w, clip, NEGATIVE), latent, denoise=0.5, steps=16
+        ),
+        vae,
+    )
     save(w, source, "source")
     save(w, image, "painted")
     thumbnail(w, image, "painted_thumb", 8)
@@ -3165,21 +3762,37 @@ def sdxl_img2img_keeps_color_layout(w):
     return check
 
 
-@case("Hires fix no SDXL: base 640, LatentUpscaleBy (bislerp 1,5x) e LatentUpscale com "
-      "crop central, cada um refinado com denoise parcial.", gpu=True)
+@case(
+    "Hires fix no SDXL: base 640, LatentUpscaleBy (bislerp 1,5x) e LatentUpscale com "
+    "crop central, cada um refinado com denoise parcial.",
+    gpu=True,
+)
 def sdxl_hires_fix_upscales_latent(w):
     model, clip, vae = sdxl(w)
-    positive = prompt(w, clip, "a cozy cabin in a snowy pine forest at night, warm windows")
+    positive = prompt(
+        w, clip, "a cozy cabin in a snowy pine forest at night, warm windows"
+    )
     negative = prompt(w, clip, NEGATIVE)
     base = ksample(w, model, positive, negative, empty_latent(w, 640, 640), steps=12)
     save(w, decode(w, base, vae), "base")
-    bigger = w.add_node(LatentUpscaleBy, samples=base, upscale_method="bislerp", scale_by=1.5)
-    hires = ksample(w, model, positive, negative, bigger.output["LATENT"], steps=10, denoise=0.45)
+    bigger = w.add_node(
+        LatentUpscaleBy, samples=base, upscale_method="bislerp", scale_by=1.5
+    )
+    hires = ksample(
+        w, model, positive, negative, bigger.output["LATENT"], steps=10, denoise=0.45
+    )
     save(w, decode(w, hires, vae), "hires")
     resized = w.add_node(
-        LatentUpscale, samples=base, upscale_method="nearest-exact", width=832, height=832, crop="center"
+        LatentUpscale,
+        samples=base,
+        upscale_method="nearest-exact",
+        width=832,
+        height=832,
+        crop="center",
     )
-    refined = ksample(w, model, positive, negative, resized.output["LATENT"], steps=10, denoise=0.4)
+    refined = ksample(
+        w, model, positive, negative, resized.output["LATENT"], steps=10, denoise=0.4
+    )
     save(w, decode(w, refined, vae), "resized")
 
     def check(out):
@@ -3192,18 +3805,29 @@ def sdxl_hires_fix_upscales_latent(w):
 
 def inpaint_canvas(w):
     canvas = solid(w, 768, 768, GRAY)
-    mask = combine_masks(w, solid_mask(w, 0.0, 768, 768), solid_mask(w, 1.0, 256, 256), "add", 256, 256)
+    mask = combine_masks(
+        w, solid_mask(w, 0.0, 768, 768), solid_mask(w, 1.0, 256, 256), "add", 256, 256
+    )
     return canvas, mask
 
 
-@case("Inpainting com VAEEncodeForInpaint numa tela cinza com máscara central; o resultado "
-      "é colado de volta com a máscara e o lado de fora fica exato.", gpu=True)
+@case(
+    "Inpainting com VAEEncodeForInpaint numa tela cinza com máscara central; o resultado "
+    "é colado de volta com a máscara e o lado de fora fica exato.",
+    gpu=True,
+)
 def sdxl_inpaint_keeps_outside_pixels(w):
     model, clip, vae = sdxl(w)
     canvas, mask = inpaint_canvas(w)
-    latent = w.add_node(VAEEncodeForInpaint, pixels=canvas, vae=vae, mask=mask, grow_mask_by=8)
+    latent = w.add_node(
+        VAEEncodeForInpaint, pixels=canvas, vae=vae, mask=mask, grow_mask_by=8
+    )
     positive = prompt(w, clip, "a shiny red apple on a gray table, studio photo")
-    painted = decode(w, ksample(w, model, positive, prompt(w, clip, NEGATIVE), latent.output["LATENT"]), vae)
+    painted = decode(
+        w,
+        ksample(w, model, positive, prompt(w, clip, NEGATIVE), latent.output["LATENT"]),
+        vae,
+    )
     final = paste(w, canvas, painted, mask=mask)
     save(w, final, "final")
     save(w, crop(w, final, 0, 0, 64, 64), "outside")
@@ -3218,8 +3842,11 @@ def sdxl_inpaint_keeps_outside_pixels(w):
     return check
 
 
-@case("Inpainting com InpaintModelConditioning e com SetLatentNoiseMask: fora da máscara a "
-      "imagem continua cinza, dentro aparece conteúdo novo.", gpu=True)
+@case(
+    "Inpainting com InpaintModelConditioning e com SetLatentNoiseMask: fora da máscara a "
+    "imagem continua cinza, dentro aparece conteúdo novo.",
+    gpu=True,
+)
 def sdxl_inpaint_conditioning_and_noise_mask(w):
     model, clip, vae = sdxl(w)
     canvas, mask = inpaint_canvas(w)
@@ -3234,7 +3861,17 @@ def sdxl_inpaint_conditioning_and_noise_mask(w):
         mask=mask,
         noise_mask=True,
     ).output
-    first = decode(w, ksample(w, model, conditioned["positive"], conditioned["negative"], conditioned["latent"]), vae)
+    first = decode(
+        w,
+        ksample(
+            w,
+            model,
+            conditioned["positive"],
+            conditioned["negative"],
+            conditioned["latent"],
+        ),
+        vae,
+    )
     encoded = w.add_node(VAEEncode, pixels=canvas, vae=vae).output["LATENT"]
     masked = w.add_node(SetLatentNoiseMask, samples=encoded, mask=mask).output["LATENT"]
     second = decode(w, ksample(w, model, positive, negative, masked, denoise=0.9), vae)
@@ -3253,18 +3890,41 @@ def sdxl_inpaint_conditioning_and_noise_mask(w):
     return check
 
 
-@case("Outpainting no SDXL: imagem gerada é estendida 256 px para a direita com "
-      "ImagePadForOutpaint e a área nova é preenchida pelo modelo.", gpu=True)
+@case(
+    "Outpainting no SDXL: imagem gerada é estendida 256 px para a direita com "
+    "ImagePadForOutpaint e a área nova é preenchida pelo modelo.",
+    gpu=True,
+)
 def sdxl_outpaint_extends_canvas(w):
     model, clip, vae = sdxl(w)
-    positive = prompt(w, clip, "a wide beach with palm trees and turquoise water, travel photo")
-    negative = prompt(w, clip, NEGATIVE)
-    image = decode(w, ksample(w, model, positive, negative, empty_latent(w, 640, 640), steps=12), vae)
-    padded = w.add_node(ImagePadForOutpaint, image=image, left=0, top=0, right=256, bottom=0, feathering=40)
-    latent = w.add_node(
-        VAEEncodeForInpaint, pixels=padded.output["IMAGE"], vae=vae, mask=padded.output["MASK"], grow_mask_by=16
+    positive = prompt(
+        w, clip, "a wide beach with palm trees and turquoise water, travel photo"
     )
-    extended = decode(w, ksample(w, model, positive, negative, latent.output["LATENT"], steps=14), vae)
+    negative = prompt(w, clip, NEGATIVE)
+    image = decode(
+        w,
+        ksample(w, model, positive, negative, empty_latent(w, 640, 640), steps=12),
+        vae,
+    )
+    padded = w.add_node(
+        ImagePadForOutpaint,
+        image=image,
+        left=0,
+        top=0,
+        right=256,
+        bottom=0,
+        feathering=40,
+    )
+    latent = w.add_node(
+        VAEEncodeForInpaint,
+        pixels=padded.output["IMAGE"],
+        vae=vae,
+        mask=padded.output["MASK"],
+        grow_mask_by=16,
+    )
+    extended = decode(
+        w, ksample(w, model, positive, negative, latent.output["LATENT"], steps=14), vae
+    )
     save(w, padded.output["IMAGE"], "padded")
     save(w, extended, "extended")
 
@@ -3275,8 +3935,11 @@ def sdxl_outpaint_extends_canvas(w):
     return check
 
 
-@case("Prompts regionais: tulipas vermelhas à esquerda (ConditioningSetArea / SetMask) e "
-      "lago azul à direita; a metade esquerda sai mais vermelha.", gpu=True)
+@case(
+    "Prompts regionais: tulipas vermelhas à esquerda (ConditioningSetArea / SetMask) e "
+    "lago azul à direita; a metade esquerda sai mais vermelha.",
+    gpu=True,
+)
 def sdxl_regional_prompts_left_and_right(w):
     model, clip, vae = sdxl(w)
     negative = prompt(w, clip, NEGATIVE)
@@ -3288,17 +3951,51 @@ def sdxl_regional_prompts_left_and_right(w):
     def combined(*conditionings):
         result = conditionings[0]
         for other in conditionings[1:]:
-            result = w.add_node(ConditioningCombine, conditioning_1=result, conditioning_2=other).output["CONDITIONING"]
+            result = w.add_node(
+                ConditioningCombine, conditioning_1=result, conditioning_2=other
+            ).output["CONDITIONING"]
         return result
 
-    left = w.add_node(ConditioningSetArea, conditioning=red, width=512, height=512, x=0, y=0, strength=1.0)
-    right = w.add_node(ConditioningSetArea, conditioning=blue, width=512, height=512, x=512, y=0, strength=1.0)
+    left = w.add_node(
+        ConditioningSetArea,
+        conditioning=red,
+        width=512,
+        height=512,
+        x=0,
+        y=0,
+        strength=1.0,
+    )
+    right = w.add_node(
+        ConditioningSetArea,
+        conditioning=blue,
+        width=512,
+        height=512,
+        x=512,
+        y=0,
+        strength=1.0,
+    )
     areas = combined(scene, left.output["CONDITIONING"], right.output["CONDITIONING"])
-    left_mask = combine_masks(w, solid_mask(w, 0.0, 1024, 512), solid_mask(w, 1.0, 512, 512), "add")
+    left_mask = combine_masks(
+        w, solid_mask(w, 0.0, 1024, 512), solid_mask(w, 1.0, 512, 512), "add"
+    )
     right_mask = w.add_node(InvertMask, mask=left_mask).output["MASK"]
-    masked_left = w.add_node(ConditioningSetMask, conditioning=red, mask=left_mask, set_cond_area="mask bounds", strength=1.0)
-    masked_right = w.add_node(ConditioningSetMask, conditioning=blue, mask=right_mask, set_cond_area="mask bounds", strength=1.0)
-    masks = combined(scene, masked_left.output["CONDITIONING"], masked_right.output["CONDITIONING"])
+    masked_left = w.add_node(
+        ConditioningSetMask,
+        conditioning=red,
+        mask=left_mask,
+        set_cond_area="mask bounds",
+        strength=1.0,
+    )
+    masked_right = w.add_node(
+        ConditioningSetMask,
+        conditioning=blue,
+        mask=right_mask,
+        set_cond_area="mask bounds",
+        strength=1.0,
+    )
+    masks = combined(
+        scene, masked_left.output["CONDITIONING"], masked_right.output["CONDITIONING"]
+    )
     for label, positive in (("areas", areas), ("masks", masks)):
         image = decode(w, ksample(w, model, positive, negative, latent, steps=16), vae)
         save(w, image, label)
@@ -3310,31 +4007,61 @@ def sdxl_regional_prompts_left_and_right(w):
             thumb = out.picture(f"{label}_thumb")
             left_r, _, left_b = thumb.mean((0, 0, 8, 8))
             right_r, _, right_b = thumb.mean((8, 0, 16, 8))
-            assert (left_r - left_b) > (right_r - right_b) + 25, (label, left_r, left_b, right_r, right_b)
+            assert (left_r - left_b) > (right_r - right_b) + 25, (
+                label,
+                left_r,
+                left_b,
+                right_r,
+                right_b,
+            )
 
     return check
 
 
-@case("Aritmética de condicionamento: ConditioningAverage, Concat, SetTimestepRange "
-      "combinados, Multiply e ZeroOut no negativo; quatro imagens distintas.", gpu=True)
+@case(
+    "Aritmética de condicionamento: ConditioningAverage, Concat, SetTimestepRange "
+    "combinados, Multiply e ZeroOut no negativo; quatro imagens distintas.",
+    gpu=True,
+)
 def sdxl_conditioning_arithmetic(w):
     model, clip, vae = sdxl(w)
     mountain = prompt(w, clip, "a snowy mountain peak, dramatic clouds")
     beach = prompt(w, clip, "a tropical beach with palm trees")
-    negative = w.add_node(ConditioningZeroOut, conditioning=prompt(w, clip, NEGATIVE)).output["CONDITIONING"]
-    early = w.add_node(ConditioningSetTimestepRange, conditioning=mountain, start=0.0, end=0.5)
-    late = w.add_node(ConditioningSetTimestepRange, conditioning=beach, start=0.5, end=1.0)
+    negative = w.add_node(
+        ConditioningZeroOut, conditioning=prompt(w, clip, NEGATIVE)
+    ).output["CONDITIONING"]
+    early = w.add_node(
+        ConditioningSetTimestepRange, conditioning=mountain, start=0.0, end=0.5
+    )
+    late = w.add_node(
+        ConditioningSetTimestepRange, conditioning=beach, start=0.5, end=1.0
+    )
     positives = {
-        "average": w.add_node(ConditioningAverage, conditioning_to=mountain, conditioning_from=beach,
-                              conditioning_to_strength=0.5).output["CONDITIONING"],
-        "concat": w.add_node(ConditioningConcat, conditioning_to=mountain, conditioning_from=beach).output["CONDITIONING"],
-        "timesteps": w.add_node(ConditioningCombine, conditioning_1=early.output["CONDITIONING"],
-                                conditioning_2=late.output["CONDITIONING"]).output["CONDITIONING"],
-        "multiplied": w.add_node(ConditioningMultiply, conditioning=mountain, multiplier=1.2).output["CONDITIONING"],
+        "average": w.add_node(
+            ConditioningAverage,
+            conditioning_to=mountain,
+            conditioning_from=beach,
+            conditioning_to_strength=0.5,
+        ).output["CONDITIONING"],
+        "concat": w.add_node(
+            ConditioningConcat, conditioning_to=mountain, conditioning_from=beach
+        ).output["CONDITIONING"],
+        "timesteps": w.add_node(
+            ConditioningCombine,
+            conditioning_1=early.output["CONDITIONING"],
+            conditioning_2=late.output["CONDITIONING"],
+        ).output["CONDITIONING"],
+        "multiplied": w.add_node(
+            ConditioningMultiply, conditioning=mountain, multiplier=1.2
+        ).output["CONDITIONING"],
     }
     latent = empty_latent(w, 640, 640)
     for label, positive in positives.items():
-        save(w, decode(w, ksample(w, model, positive, negative, latent, steps=12), vae), label)
+        save(
+            w,
+            decode(w, ksample(w, model, positive, negative, latent, steps=12), vae),
+            label,
+        )
 
     def check(out):
         images = [out.one(label) for label in positives]
@@ -3348,7 +4075,9 @@ def sdxl_conditioning_arithmetic(w):
 UNET_PATCHES_A = {
     "freeu": lambda w, m: w.add_node(FreeU, model=m).output["MODEL"],
     "freeu_v2": lambda w, m: w.add_node(FreeU_V2, model=m).output["MODEL"],
-    "pag": lambda w, m: w.add_node(PerturbedAttentionGuidance, model=m, scale=2.0).output["MODEL"],
+    "pag": lambda w, m: w.add_node(
+        PerturbedAttentionGuidance, model=m, scale=2.0
+    ).output["MODEL"],
     # At 640 px the depth-1 attention is 40x40 tokens; 128 px tiles (16 latent) split
     # it 2x2, and swap_size 1 keeps that choice deterministic.
     "hypertile_depth_1": lambda w, m: w.add_node(
@@ -3359,18 +4088,35 @@ UNET_PATCHES_A = {
 # which SDXL does not have, so on SDXL they leave the image as it was.
 UNET_NO_OPS_A = {
     "tome": lambda w, m: w.add_node(TomePatchModel, model=m, ratio=0.3).output["MODEL"],
-    "hypertile_depth_0": lambda w, m: w.add_node(HyperTile, model=m, tile_size=256).output["MODEL"],
+    "hypertile_depth_0": lambda w, m: w.add_node(
+        HyperTile, model=m, tile_size=256
+    ).output["MODEL"],
 }
 UNET_PATCHES_B = {
     "deep_shrink": lambda w, m: w.add_node(
-        PatchModelAddDownscale, model=m, downscale_method="bicubic", upscale_method="bicubic"
+        PatchModelAddDownscale,
+        model=m,
+        downscale_method="bicubic",
+        upscale_method="bicubic",
     ).output["MODEL"],
-    "epsilon": lambda w, m: w.add_node(EpsilonScaling, model=m, scaling_factor=1.005).output["MODEL"],
-    "rescale_cfg": lambda w, m: w.add_node(RescaleCFG, model=m, multiplier=0.7).output["MODEL"],
-    "sag": lambda w, m: w.add_node(SelfAttentionGuidance, model=m, scale=0.5, blur_sigma=2.0).output["MODEL"],
-    "apg": lambda w, m: w.add_node(APG, model=m, eta=1.0, norm_threshold=5.0).output["MODEL"],
-    "cfg_norm": lambda w, m: w.add_node(CFGNorm, model=m, strength=1.0).output["patched_model"],
-    "cfg_override": lambda w, m: w.add_node(CFGOverride, model=m, cfg=3.0).output["MODEL"],
+    "epsilon": lambda w, m: w.add_node(
+        EpsilonScaling, model=m, scaling_factor=1.005
+    ).output["MODEL"],
+    "rescale_cfg": lambda w, m: w.add_node(RescaleCFG, model=m, multiplier=0.7).output[
+        "MODEL"
+    ],
+    "sag": lambda w, m: w.add_node(
+        SelfAttentionGuidance, model=m, scale=0.5, blur_sigma=2.0
+    ).output["MODEL"],
+    "apg": lambda w, m: w.add_node(APG, model=m, eta=1.0, norm_threshold=5.0).output[
+        "MODEL"
+    ],
+    "cfg_norm": lambda w, m: w.add_node(CFGNorm, model=m, strength=1.0).output[
+        "patched_model"
+    ],
+    "cfg_override": lambda w, m: w.add_node(CFGOverride, model=m, cfg=3.0).output[
+        "MODEL"
+    ],
 }
 
 
@@ -3383,7 +4129,9 @@ def patch_case(w, text, changed, unchanged):
     models.update({label: build(w, model) for label, build in changed.items()})
     models.update({label: build(w, model) for label, build in unchanged.items()})
     for label, patched in models.items():
-        image = decode(w, ksample(w, patched, positive, negative, latent, steps=12), vae)
+        image = decode(
+            w, ksample(w, patched, positive, negative, latent, steps=12), vae
+        )
         save(w, image, label)
         thumbnail(w, image, f"{label}_thumb", 32)
 
@@ -3395,44 +4143,66 @@ def patch_case(w, text, changed, unchanged):
             assert_generated(image, (640, 640))
             assert image != baseline, f"{label} did not change the image"
         for label in unchanged:
-            difference = mean_difference(out.picture(f"{label}_thumb"), out.picture("baseline_thumb"))
+            difference = mean_difference(
+                out.picture(f"{label}_thumb"), out.picture("baseline_thumb")
+            )
             assert difference < 1.5, f"{label} changed the image by {difference}"
 
     return check
 
 
-@case("Patches de UNet no SDXL contra a linha de base: FreeU, FreeU_V2, PAG e HyperTile "
-      "(tiles de 128, max_depth 1) mudam a imagem; ToMe e HyperTile com max_depth 0 não, "
-      "porque o SDXL não tem atenção na resolução máxima.", gpu=True)
+@case(
+    "Patches de UNet no SDXL contra a linha de base: FreeU, FreeU_V2, PAG e HyperTile "
+    "(tiles de 128, max_depth 1) mudam a imagem; ToMe e HyperTile com max_depth 0 não, "
+    "porque o SDXL não tem atenção na resolução máxima.",
+    gpu=True,
+)
 def sdxl_unet_patches_part_one(w):
     return patch_case(
-        w, "a vintage red car parked on a cobblestone street", UNET_PATCHES_A, UNET_NO_OPS_A
+        w,
+        "a vintage red car parked on a cobblestone street",
+        UNET_PATCHES_A,
+        UNET_NO_OPS_A,
     )
 
 
-@case("Mais sete patches (Deep Shrink, Epsilon Scaling, RescaleCFG, SAG, APG, CFGNorm, "
-      "CFGOverride) e ModelSamplingDiscrete eps, que não pode mudar nada.", gpu=True)
+@case(
+    "Mais sete patches (Deep Shrink, Epsilon Scaling, RescaleCFG, SAG, APG, CFGNorm, "
+    "CFGOverride) e ModelSamplingDiscrete eps, que não pode mudar nada.",
+    gpu=True,
+)
 def sdxl_unet_patches_part_two(w):
     same = {
         "eps": lambda w, m: w.add_node(
             ModelSamplingDiscrete, model=m, sampling="eps", zsnr=False
         ).output["MODEL"],
     }
-    return patch_case(w, "a steaming cup of coffee on a rainy window sill", UNET_PATCHES_B, same)
+    return patch_case(
+        w, "a steaming cup of coffee on a rainy window sill", UNET_PATCHES_B, same
+    )
 
 
-@case("ModelMergeSimple e CLIPMergeSimple de um modelo consigo mesmo não mudam a imagem; "
-      "CLIPSetLastLayer -2 também não (já é o padrão do SDXL), mas -3 muda.", gpu=True)
+@case(
+    "ModelMergeSimple e CLIPMergeSimple de um modelo consigo mesmo não mudam a imagem; "
+    "CLIPSetLastLayer -2 também não (já é o padrão do SDXL), mas -3 muda.",
+    gpu=True,
+)
 def sdxl_merge_identity_and_clip_skip(w):
     model, clip, vae = sdxl(w)
     text = "a portrait of an old fisherman, dramatic lighting, oil painting"
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 640, 640)
-    merged_model = w.add_node(ModelMergeSimple, model1=model, model2=model, ratio=0.5).output["MODEL"]
-    merged_clip = w.add_node(CLIPMergeSimple, clip1=clip, clip2=clip, ratio=0.5).output["CLIP"]
+    merged_model = w.add_node(
+        ModelMergeSimple, model1=model, model2=model, ratio=0.5
+    ).output["MODEL"]
+    merged_clip = w.add_node(CLIPMergeSimple, clip1=clip, clip2=clip, ratio=0.5).output[
+        "CLIP"
+    ]
 
     def last_layer(layer):
-        return w.add_node(CLIPSetLastLayer, clip=clip, stop_at_clip_layer=layer).output["CLIP"]
+        return w.add_node(CLIPSetLastLayer, clip=clip, stop_at_clip_layer=layer).output[
+            "CLIP"
+        ]
 
     variants = {
         "baseline": (model, clip),
@@ -3442,7 +4212,11 @@ def sdxl_merge_identity_and_clip_skip(w):
         "clip_skip_3": (model, last_layer(-3)),
     }
     for label, (unet, encoder) in variants.items():
-        image = decode(w, ksample(w, unet, prompt(w, encoder, text), negative, latent, steps=12), vae)
+        image = decode(
+            w,
+            ksample(w, unet, prompt(w, encoder, text), negative, latent, steps=12),
+            vae,
+        )
         save(w, image, label)
         thumbnail(w, image, f"{label}_thumb", 32)
 
@@ -3459,8 +4233,11 @@ def sdxl_merge_identity_and_clip_skip(w):
     return check
 
 
-@case("CLIPTextEncodeSDXL com condicionamento de tamanho e de recorte diferentes: três "
-      "imagens distintas a partir do mesmo texto.", gpu=True)
+@case(
+    "CLIPTextEncodeSDXL com condicionamento de tamanho e de recorte diferentes: três "
+    "imagens distintas a partir do mesmo texto.",
+    gpu=True,
+)
 def sdxl_size_conditioning(w):
     model, clip, vae = sdxl(w)
     negative = prompt(w, clip, NEGATIVE)
@@ -3480,7 +4257,11 @@ def sdxl_size_conditioning(w):
             target_height=1024,
             **sizes,
         ).output["CONDITIONING"]
-        save(w, decode(w, ksample(w, model, positive, negative, latent, steps=12), vae), label)
+        save(
+            w,
+            decode(w, ksample(w, model, positive, negative, latent, steps=12), vae),
+            label,
+        )
 
     def check(out):
         images = [out.one(label) for label in variants]
@@ -3491,14 +4272,31 @@ def sdxl_size_conditioning(w):
     return check
 
 
-@case("Operações de latente sobre uma geração 640x512: flip, rotação, crop, composite, "
-      "blend, interpolate, tonemap, sharpen e (a+a)*0,5 = a.", gpu=True)
+@case(
+    "Operações de latente sobre uma geração 640x512: flip, rotação, crop, composite, "
+    "blend, interpolate, tonemap, sharpen e (a+a)*0,5 = a.",
+    gpu=True,
+)
 def sdxl_latent_operations(w):
     model, clip, vae = sdxl(w)
     negative = prompt(w, clip, NEGATIVE)
     latent = empty_latent(w, 640, 512)
-    base = ksample(w, model, prompt(w, clip, "a sailboat on a calm sea at dawn"), negative, latent, steps=12)
-    other = ksample(w, model, prompt(w, clip, "a field of sunflowers under a blue sky"), negative, latent, steps=12)
+    base = ksample(
+        w,
+        model,
+        prompt(w, clip, "a sailboat on a calm sea at dawn"),
+        negative,
+        latent,
+        steps=12,
+    )
+    other = ksample(
+        w,
+        model,
+        prompt(w, clip, "a field of sunflowers under a blue sky"),
+        negative,
+        latent,
+        steps=12,
+    )
 
     def latent_node(node_type, **inputs):
         return w.add_node(node_type, **inputs).output["LATENT"]
@@ -3509,12 +4307,20 @@ def sdxl_latent_operations(w):
     doubled = latent_node(LatentAdd, samples1=base, samples2=base)
     variants = {
         "base": base,
-        "flipped": latent_node(LatentFlip, samples=base, flip_method="y-axis: horizontally"),
+        "flipped": latent_node(
+            LatentFlip, samples=base, flip_method="y-axis: horizontally"
+        ),
         "rotated": latent_node(LatentRotate, samples=base, rotation="90 degrees"),
-        "cropped": latent_node(LatentCrop, samples=base, width=384, height=384, x=64, y=64),
+        "cropped": latent_node(
+            LatentCrop, samples=base, width=384, height=384, x=64, y=64
+        ),
         "doubled_half": latent_node(LatentMultiply, samples=doubled, multiplier=0.5),
-        "blended": latent_node(LatentBlend, samples1=base, samples2=other, blend_factor=0.5),
-        "interpolated": latent_node(LatentInterpolate, samples1=base, samples2=other, ratio=0.5),
+        "blended": latent_node(
+            LatentBlend, samples1=base, samples2=other, blend_factor=0.5
+        ),
+        "interpolated": latent_node(
+            LatentInterpolate, samples1=base, samples2=other, ratio=0.5
+        ),
         "tonemapped": latent_node(
             LatentApplyOperation,
             samples=base,
@@ -3523,12 +4329,16 @@ def sdxl_latent_operations(w):
         "sharpened": latent_node(
             LatentApplyOperation,
             samples=base,
-            operation=operation(LatentOperationSharpen, sharpen_radius=9, sigma=1.0, alpha=0.1),
+            operation=operation(
+                LatentOperationSharpen, sharpen_radius=9, sigma=1.0, alpha=0.1
+            ),
         ),
         "composited": latent_node(
             LatentComposite,
             samples_to=base,
-            samples_from=latent_node(LatentCrop, samples=other, width=256, height=256, x=0, y=0),
+            samples_from=latent_node(
+                LatentCrop, samples=other, width=256, height=256, x=0, y=0
+            ),
             x=64,
             y=64,
             feather=16,
@@ -3556,21 +4366,40 @@ def sdxl_latent_operations(w):
     return check
 
 
-@case("VAEDecodeTiled e VAEEncodeTiled numa geração 1024x1024: o decode em tiles bate com o "
-      "normal e o encode em tiles alimenta um refinamento.", gpu=True)
+@case(
+    "VAEDecodeTiled e VAEEncodeTiled numa geração 1024x1024: o decode em tiles bate com o "
+    "normal e o encode em tiles alimenta um refinamento.",
+    gpu=True,
+)
 def sdxl_tiled_vae_round_trip(w):
     model, clip, vae = sdxl(w)
-    positive = prompt(w, clip, "an ornate gothic cathedral interior, stained glass, light rays")
+    positive = prompt(
+        w, clip, "an ornate gothic cathedral interior, stained glass, light rays"
+    )
     negative = prompt(w, clip, NEGATIVE)
     base = ksample(w, model, positive, negative, empty_latent(w, 1024, 1024), steps=12)
     full = decode(w, base, vae)
     tiled = w.add_node(
-        VAEDecodeTiled, samples=base, vae=vae, tile_size=512, overlap=64, temporal_size=64, temporal_overlap=8
+        VAEDecodeTiled,
+        samples=base,
+        vae=vae,
+        tile_size=512,
+        overlap=64,
+        temporal_size=64,
+        temporal_overlap=8,
     ).output["IMAGE"]
     encoded = w.add_node(
-        VAEEncodeTiled, pixels=tiled, vae=vae, tile_size=512, overlap=64, temporal_size=64, temporal_overlap=8
+        VAEEncodeTiled,
+        pixels=tiled,
+        vae=vae,
+        tile_size=512,
+        overlap=64,
+        temporal_size=64,
+        temporal_overlap=8,
     ).output["LATENT"]
-    refined = decode(w, ksample(w, model, positive, negative, encoded, steps=8, denoise=0.3), vae)
+    refined = decode(
+        w, ksample(w, model, positive, negative, encoded, steps=8, denoise=0.3), vae
+    )
     save(w, tiled, "tiled")
     save(w, refined, "refined")
     thumbnail(w, full, "full_thumb", 32)
@@ -3579,24 +4408,46 @@ def sdxl_tiled_vae_round_trip(w):
     def check(out):
         assert_generated(out.one("tiled"), (1024, 1024))
         assert_generated(out.one("refined"), (1024, 1024))
-        assert mean_difference(out.picture("tiled_thumb"), out.picture("full_thumb")) < 4
+        assert (
+            mean_difference(out.picture("tiled_thumb"), out.picture("full_thumb")) < 4
+        )
 
     return check
 
 
-@case("Seis gerações SDXL em lote (LatentBatchSeedBehavior random) viram um MP4 H.264, um "
-      "WEBP animado e voltam como quadros via GetVideoComponents.", gpu=True)
+@case(
+    "Seis gerações SDXL em lote (LatentBatchSeedBehavior random) viram um MP4 H.264, um "
+    "WEBP animado e voltam como quadros via GetVideoComponents.",
+    gpu=True,
+)
 def sdxl_frames_to_video(w):
     model, clip, vae = sdxl(w)
     positive = prompt(w, clip, "a jellyfish glowing in the deep ocean, bioluminescence")
     negative = prompt(w, clip, NEGATIVE)
-    batch = w.add_node(LatentBatchSeedBehavior, samples=empty_latent(w, 512, 512, batch=6), seed_behavior="random")
-    frames = decode(w, ksample(w, model, positive, negative, batch.output["LATENT"], steps=10), vae)
+    batch = w.add_node(
+        LatentBatchSeedBehavior,
+        samples=empty_latent(w, 512, 512, batch=6),
+        seed_behavior="random",
+    )
+    frames = decode(
+        w, ksample(w, model, positive, negative, batch.output["LATENT"], steps=10), vae
+    )
     video = w.add_node(CreateVideo, images=frames, fps=6.0).output["VIDEO"]
-    w.add_node(SaveVideo, video=video, filename_prefix="clip", format="mp4", format_codec="h264")
     w.add_node(
-        SaveAnimatedWEBP, images=frames, method="default", filename_prefix="loop", fps=6.0,
-        lossless=False, quality=80,
+        SaveVideo,
+        video=video,
+        filename_prefix="clip",
+        format="mp4",
+        format_codec="h264",
+    )
+    w.add_node(
+        SaveAnimatedWEBP,
+        images=frames,
+        method="default",
+        filename_prefix="loop",
+        fps=6.0,
+        lossless=False,
+        quality=80,
     )
     parts = w.add_node(GetVideoComponents, video=video).output["images"]
     third = w.add_node(ImageFromBatch, image=parts, batch_index=3, length=1)
@@ -3610,13 +4461,21 @@ def sdxl_frames_to_video(w):
     return check
 
 
-@case("Pipeline TextToImage + ImageSharpen + TextOverlay + ImageScaleToMaxDimension + Canny "
-      "costurados num pôster: tamanhos conferidos em cada etapa.", gpu=True)
+@case(
+    "Pipeline TextToImage + ImageSharpen + TextOverlay + ImageScaleToMaxDimension + Canny "
+    "costurados num pôster: tamanhos conferidos em cada etapa.",
+    gpu=True,
+)
 def sdxl_postprocess_pipeline(w):
     image = w.add_pipeline(
-        TextToImage, text="a futuristic city skyline at dusk, flying cars", width=896, height=640
+        TextToImage,
+        text="a futuristic city skyline at dusk, flying cars",
+        width=896,
+        height=640,
     ).output["IMAGE"]
-    sharp = w.add_node(ImageSharpen, image=image, sharpen_radius=1, sigma=1.0, alpha=0.3).output["IMAGE"]
+    sharp = w.add_node(
+        ImageSharpen, image=image, sharpen_radius=1, sigma=1.0, alpha=0.3
+    ).output["IMAGE"]
     titled = w.add_node(
         TextOverlay,
         images=sharp,
@@ -3627,8 +4486,15 @@ def sdxl_postprocess_pipeline(w):
         align="right",
         outline=True,
     ).output["images"]
-    small = w.add_node(ImageScaleToMaxDimension, image=titled, upscale_method="lanczos", largest_size=512)
-    edges = w.add_node(Canny, image=small.output["IMAGE"], low_threshold=0.2, high_threshold=0.5)
+    small = w.add_node(
+        ImageScaleToMaxDimension,
+        image=titled,
+        upscale_method="lanczos",
+        largest_size=512,
+    )
+    edges = w.add_node(
+        Canny, image=small.output["IMAGE"], low_threshold=0.2, high_threshold=0.5
+    )
     save(w, titled, "titled")
     save(w, small.output["IMAGE"], "small")
     save(w, stitch(w, small.output["IMAGE"], edges.output["IMAGE"], "down"), "poster")
@@ -3672,11 +4538,27 @@ def special_workflow() -> Workflow:
     for label, text, seed in SPECIAL_SCENES:
         positive = prompt(w, clip, text)
         base = ksample(
-            w, model, positive, negative, empty_latent(w, 1216, 832), seed=seed, steps=30, cfg=7.0
+            w,
+            model,
+            positive,
+            negative,
+            empty_latent(w, 1216, 832),
+            seed=seed,
+            steps=30,
+            cfg=7.0,
         )
-        larger = w.add_node(LatentUpscaleBy, samples=base, upscale_method="bislerp", scale_by=1.25)
+        larger = w.add_node(
+            LatentUpscaleBy, samples=base, upscale_method="bislerp", scale_by=1.25
+        )
         refined = ksample(
-            w, model, positive, negative, larger.output["LATENT"], seed=seed, steps=18, denoise=0.4
+            w,
+            model,
+            positive,
+            negative,
+            larger.output["LATENT"],
+            seed=seed,
+            steps=18,
+            denoise=0.4,
         )
         save(w, decode(w, refined, vae), label)
     return w
@@ -3705,8 +4587,18 @@ def keep_files(job: dict, folder: Path) -> list[tuple[str, bytes]]:
     return files
 
 
-def run_and_record(endpoint, folder_name, title, description, payload, *, timeout,
-                   uploads=None, check=None, fails_with=()):
+def run_and_record(
+    endpoint,
+    folder_name,
+    title,
+    description,
+    payload,
+    *,
+    timeout,
+    uploads=None,
+    check=None,
+    fails_with=(),
+):
     folder = GALLERY / folder_name
     shutil.rmtree(folder, ignore_errors=True)
     folder.mkdir(parents=True)
@@ -3729,14 +4621,18 @@ def run_and_record(endpoint, folder_name, title, description, payload, *, timeou
         job = endpoint.run(payload, timeout=timeout, images=uploads)
         files = keep_files(job, folder)
         if fails_with:
-            assert job.get("status") == "FAILED", f"expected a failure, the job is {job.get('status')}"
+            assert (
+                job.get("status") == "FAILED"
+            ), f"expected a failure, the job is {job.get('status')}"
             report = json.dumps(job, ensure_ascii=False)
             for text in fails_with:
-                assert text in report, f"{text!r} is not in the job error: {job.get('error')}"
+                assert (
+                    text in report
+                ), f"{text!r} is not in the job error: {job.get('error')}"
         else:
-            assert job.get("status") == "COMPLETED", (
-                f"the job is {job.get('status')}: {job.get('error')} {job.get('output')}"
-            )
+            assert (
+                job.get("status") == "COMPLETED"
+            ), f"the job is {job.get('status')}: {job.get('error')} {job.get('output')}"
             if check is not None:
                 check(Outputs(files))
     except BaseException as error:
@@ -3951,12 +4847,16 @@ def filtered_png(width: int, height: int, pixel: Callable) -> bytes:
     for y, row in enumerate(raw):
         kind = y % 5
         line = bytes(
-            (row[i] - predictor(
-                kind,
-                row[i - 3] if i >= 3 else 0,
-                previous[i],
-                previous[i - 3] if i >= 3 else 0,
-            )) & 0xFF
+            (
+                row[i]
+                - predictor(
+                    kind,
+                    row[i - 3] if i >= 3 else 0,
+                    previous[i],
+                    previous[i - 3] if i >= 3 else 0,
+                )
+            )
+            & 0xFF
             for i in range(len(row))
         )
         body += bytes([kind]) + line
@@ -3965,7 +4865,12 @@ def filtered_png(width: int, height: int, pixel: Callable) -> bytes:
     start = plain.index(b"IDAT") - 4
     (length,) = struct.unpack(">I", plain[start : start + 4])
     idat = zlib.compress(body)
-    chunk = struct.pack(">I", len(idat)) + b"IDAT" + idat + struct.pack(">I", zlib.crc32(b"IDAT" + idat))
+    chunk = (
+        struct.pack(">I", len(idat))
+        + b"IDAT"
+        + idat
+        + struct.pack(">I", zlib.crc32(b"IDAT" + idat))
+    )
     return plain[:start] + chunk + plain[start + 12 + length :]
 
 
@@ -3973,7 +4878,9 @@ def test_png_decoder_undoes_every_row_filter():
     picture = decode_png(filtered_png(24, 16, pattern))
 
     assert picture.size == (24, 16)
-    assert all(picture.pixel(x, y) == pattern(x, y) for y in range(16) for x in range(24))
+    assert all(
+        picture.pixel(x, y) == pattern(x, y) for y in range(16) for x in range(24)
+    )
 
 
 class FakeEndpoint:
@@ -3986,7 +4893,9 @@ class FakeEndpoint:
 
 def red_job() -> dict:
     data = base64.b64encode(encode_png(4, 4, lambda x, y: (255, 0, 0))).decode()
-    output = {"images": [{"filename": "red_00001_.png", "type": "base64", "data": data}]}
+    output = {
+        "images": [{"filename": "red_00001_.png", "type": "base64", "data": data}]
+    }
     return {"id": "job-1", "status": "COMPLETED", "output": output}
 
 
@@ -3997,11 +4906,18 @@ def test_a_passing_job_is_recorded_in_the_gallery(tmp_path, monkeypatch):
         assert_pixel(out.picture("red"), 1, 1, RED, 0)
 
     run_and_record(
-        FakeEndpoint(red_job()), "001-red", "red", "um quadrado vermelho",
-        {"1": {"class_type": "EmptyImage", "inputs": {}}}, timeout=1, check=check,
+        FakeEndpoint(red_job()),
+        "001-red",
+        "red",
+        "um quadrado vermelho",
+        {"1": {"class_type": "EmptyImage", "inputs": {}}},
+        timeout=1,
+        check=check,
     )
 
-    result = json.loads((tmp_path / "001-red" / "result.json").read_text(encoding="utf-8"))
+    result = json.loads(
+        (tmp_path / "001-red" / "result.json").read_text(encoding="utf-8")
+    )
     page = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert result["status"] == "passed"
     assert (tmp_path / "001-red" / "red_00001_.png").exists()
@@ -4016,11 +4932,18 @@ def test_a_failing_check_is_recorded_and_still_fails(tmp_path, monkeypatch):
 
     with pytest.raises(AssertionError, match="expected"):
         run_and_record(
-            FakeEndpoint(red_job()), "002-blue", "blue", "devia ser azul",
-            {"1": {"class_type": "EmptyImage", "inputs": {}}}, timeout=1, check=check,
+            FakeEndpoint(red_job()),
+            "002-blue",
+            "blue",
+            "devia ser azul",
+            {"1": {"class_type": "EmptyImage", "inputs": {}}},
+            timeout=1,
+            check=check,
         )
 
-    result = json.loads((tmp_path / "002-blue" / "result.json").read_text(encoding="utf-8"))
+    result = json.loads(
+        (tmp_path / "002-blue" / "result.json").read_text(encoding="utf-8")
+    )
     assert result["status"] == "failed"
     assert "expected (0, 0, 255)" in result["message"]
     assert "falhou" in (tmp_path / "index.html").read_text(encoding="utf-8")

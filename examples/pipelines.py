@@ -7,12 +7,11 @@ from comfy_ui_api_workflow._impl.nodes.model.sampling import KSampler
 from comfy_ui_api_workflow._impl.nodes.video import CreateVideo, SaveVideo
 from comfy_ui_api_workflow._impl.pipeline import Pipeline
 
-
 Link = tuple[str, int]
 
 
 class TextToImage(Pipeline):
-    def build( # type: ignore
+    def build(  # type: ignore
         self,
         prompt: str,
         negative: str = "blurry, low quality, distorted",
@@ -48,7 +47,7 @@ class TextToImage(Pipeline):
 
 
 class Upscale(Pipeline):
-    def build(self, image: Link, scale: float = 2.0): # type: ignore
+    def build(self, image: Link, scale: float = 2.0):  # type: ignore
         scaled = self.add_node(
             ImageScaleBy, image=image, upscale_method="lanczos", scale_by=scale
         )
@@ -56,12 +55,12 @@ class Upscale(Pipeline):
 
 
 class SaveImages(Pipeline):
-    def build(self, images: Link, prefix: str = "ComfyUI"): # type: ignore
+    def build(self, images: Link, prefix: str = "ComfyUI"):  # type: ignore
         self.add_node(SaveImage, images=images, filename_prefix=prefix)
 
 
 class ImagesToVideo(Pipeline):
-    def build(self, frames: Link, fps: float = 8.0, prefix: str = "video/ComfyUI"): # type: ignore
+    def build(self, frames: Link, fps: float = 8.0, prefix: str = "video/ComfyUI"):  # type: ignore
         video = self.add_node(CreateVideo, images=frames, fps=fps)
         self.add_node(
             SaveVideo,
