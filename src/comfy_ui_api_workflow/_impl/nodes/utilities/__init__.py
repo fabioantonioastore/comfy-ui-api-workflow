@@ -2,7 +2,6 @@ from typing import Any, Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_choice, validate_not_empty, validate_range
-from ...lazy import submodules_of
 
 
 class CreateBoundingBoxes(BaseNode):
@@ -478,4 +477,4 @@ class CreateList(BaseNode):
             self.inputs_input9 = inputs_input9
 
 
-__getattr__ = submodules_of(__name__)
+from . import logic, looping, primitive

@@ -7,7 +7,6 @@ from ..validation import (
     validate_not_empty,
     validate_range,
 )
-from ...lazy import submodules_of
 from ..dynamic import Choice, Combo, DynamicInputs, Number, validate_dynamic
 
 
@@ -733,4 +732,20 @@ class SaveImageAdvanced(DynamicInputs, BaseNode):
         validate_dynamic(self)
 
 
-__getattr__ = submodules_of(__name__)
+from . import (
+    adjustments,
+    background_removal,
+    batch,
+    color,
+    compositing,
+    detection,
+    filters,
+    geometry_estimation,
+    mask,
+    post_processors,
+    pre_processors,
+    shader,
+    transform,
+    upscaling,
+    video,
+)

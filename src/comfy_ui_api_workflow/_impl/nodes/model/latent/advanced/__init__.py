@@ -2,7 +2,6 @@ from typing import Literal, get_args
 
 from ....base import BaseNode
 from ....validation import validate_choice, validate_range
-from .....lazy import submodules_of
 
 
 class LatentAdd(BaseNode):
@@ -207,4 +206,4 @@ class LatentBatchSeedBehavior(BaseNode):
         )
 
 
-__getattr__ = submodules_of(__name__)
+from . import operations

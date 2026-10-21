@@ -2,28 +2,9 @@ import importlib
 import importlib.abc
 import importlib.util
 import sys
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from importlib.machinery import ModuleSpec
 from types import ModuleType
-
-
-def submodules_of(package: str) -> Callable[[str], ModuleType]:
-    """A module __getattr__ that imports the package's submodules on first use."""
-
-    def __getattr__(name: str) -> ModuleType:
-        module = f"{package}.{name}"
-        try:
-            return importlib.import_module(module)
-        except ModuleNotFoundError as error:
-            # Only a missing submodule is a missing attribute; a broken import
-            # inside an existing module still raises as it is.
-            if error.name != module:
-                raise
-            raise AttributeError(
-                f"module {package!r} has no attribute {name!r}"
-            ) from None
-
-    return __getattr__
 
 
 class _PublicModules(importlib.abc.MetaPathFinder, importlib.abc.Loader):

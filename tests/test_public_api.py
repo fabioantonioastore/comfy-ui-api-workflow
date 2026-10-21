@@ -1,7 +1,10 @@
+import ast
 import json
+import pkgutil
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -146,17 +149,6 @@ def test_public_module_paths_are_registered_once():
     assert result.stdout.split() == ["1"]
 
 
-def test_a_from_import_loads_only_the_modules_it_names():
-    result = fresh("""
-        import sys
-        from comfy_ui_api_workflow.nodes.image import SaveImage
-        print("comfy_ui_api_workflow._impl.nodes.video" in sys.modules)
-        """)
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.split() == ["False"]
-
-
 @pytest.mark.parametrize("namespace", ["nodes", "errors"])
 def test_a_name_that_is_no_module_is_an_attribute_error(namespace):
     result = fresh(f"""
@@ -200,23 +192,31 @@ def test_a_workflow_is_built_with_the_package_root_alone():
     assert save["inputs"]["filename_prefix"] == "api"
 
 
-def test_a_broken_import_inside_a_submodule_is_not_hidden(tmp_path, monkeypatch):
-    package = tmp_path / "lazy_package"
-    package.mkdir()
-    (package / "__init__.py").write_text(
-        "from comfy_ui_api_workflow._impl.lazy import submodules_of\n"
-        "__getattr__ = submodules_of(__name__)\n"
-    )
-    (package / "fine.py").write_text("VALUE = 7\n")
-    (package / "broken.py").write_text("import a_module_that_is_not_installed\n")
-    monkeypatch.syspath_prepend(str(tmp_path))
-    imported = __import__("lazy_package")
+PACKAGE_ROOT = Path(package.__file__).parent
+PACKAGES = sorted(
+    init.parent
+    for namespace in ("errors", "nodes")
+    for init in (PACKAGE_ROOT / "_impl" / namespace).rglob("__init__.py")
+)
 
-    assert imported.fine.VALUE == 7
-    with pytest.raises(ModuleNotFoundError) as excinfo:
-        imported.broken
-    assert excinfo.value.name == "a_module_that_is_not_installed"
-    with pytest.raises(
-        AttributeError, match="'lazy_package' has no attribute 'absent'"
-    ):
-        imported.absent
+
+# Editors complete only the submodules a package imports itself.
+@pytest.mark.parametrize(
+    "directory",
+    PACKAGES,
+    ids=lambda directory: ".".join(directory.relative_to(PACKAGE_ROOT).parts),
+)
+def test_a_package_imports_all_its_submodules(directory):
+    tree = ast.parse((directory / "__init__.py").read_text())
+    imported = {
+        alias.name
+        for statement in tree.body
+        if isinstance(statement, ast.ImportFrom)
+        and statement.level == 1
+        and statement.module is None
+        for alias in statement.names
+    }
+
+    assert imported == {
+        module.name for module in pkgutil.iter_modules([str(directory)])
+    }

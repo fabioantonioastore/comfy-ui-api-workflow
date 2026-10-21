@@ -7,7 +7,6 @@ from ...validation import (
     validate_not_empty,
     validate_range,
 )
-from ....lazy import submodules_of
 
 
 class VAEDecode(BaseNode):
@@ -507,4 +506,29 @@ class TrimVideoLatent(BaseNode):
         validate_range("trim_amount", self.trim_amount, 0, 99_999)
 
 
-__getattr__ = submodules_of(__name__)
+from . import (
+    ace,
+    advanced,
+    autoregressive,
+    batch,
+    chroma_radiance,
+    cosmos,
+    flux,
+    hidream,
+    hunyuan_3d,
+    hunyuan_image,
+    hunyuan_video,
+    ltxv,
+    minimax,
+    minimax_music,
+    mochi,
+    qwen,
+    seedvr,
+    stable_cascade,
+    stable_diffusion,
+    transform,
+    trellis,
+    triposplat,
+    void,
+    yue2,
+)

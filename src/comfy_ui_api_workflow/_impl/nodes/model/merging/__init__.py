@@ -1,6 +1,5 @@
 from ...base import BaseNode
 from ...validation import validate_range
-from ....lazy import submodules_of
 
 
 class ModelMergeSimple(BaseNode):
@@ -287,4 +286,4 @@ class SaveLoRA(BaseNode):
             validate_range("steps", self.steps)
 
 
-__getattr__ = submodules_of(__name__)
+from . import model_specific

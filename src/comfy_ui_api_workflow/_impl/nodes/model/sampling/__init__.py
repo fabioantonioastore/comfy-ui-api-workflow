@@ -2,7 +2,6 @@ from typing import Literal, get_args
 
 from ...base import BaseNode
 from ...validation import validate_choice, validate_range
-from ....lazy import submodules_of
 
 KSampler_Sampler_Names = Literal[
     "euler",
@@ -225,4 +224,4 @@ class KSamplerAdvanced(BaseNode):
         validate_range("end_at_step", self.end_at_step, 0, 10_000)
 
 
-__getattr__ = submodules_of(__name__)
+from . import custom, guiders, noise, samplers, schedulers, sigmas

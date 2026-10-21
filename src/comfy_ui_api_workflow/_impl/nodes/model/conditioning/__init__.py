@@ -2,7 +2,6 @@ from typing import Literal, get_args
 
 from ...base import BaseNode
 from ...validation import validate_bool, validate_choice, validate_range
-from ....lazy import submodules_of
 
 
 class CLIPTextEncode(BaseNode):
@@ -392,4 +391,44 @@ class NormalizeVideoLatentStart(BaseNode):
         validate_range("reference_frame_count", self.reference_frame_count, 1, 16_384)
 
 
-__getattr__ = submodules_of(__name__)
+from . import (
+    ace,
+    autoregressive,
+    bernini,
+    boogu,
+    controlnet,
+    cosmos,
+    flux,
+    gligen,
+    hidream,
+    hunyuan_3d,
+    hunyuan_image,
+    hunyuan_video,
+    instructpix2pix,
+    joyimage,
+    kandinsky,
+    lotus,
+    ltxv,
+    lumina,
+    mage,
+    ming_image,
+    minimax,
+    minimax_music,
+    photomaker,
+    pixart,
+    qwen_image,
+    stable_audio,
+    stable_cascade,
+    stable_diffusion,
+    stable_diffusion_upscaler,
+    stable_video,
+    stable_video_3d,
+    stable_zero123,
+    transform,
+    trellis,
+    triposplat,
+    void,
+    wan,
+    yue2,
+    z_image,
+)

@@ -2,7 +2,6 @@ from typing import Literal, get_args
 
 from ...base import BaseNode
 from ...validation import validate_bool, validate_choice, validate_range
-from ....lazy import submodules_of
 from ...dynamic import Combo, DynamicInputs, Number, validate_dynamic
 
 ModelSamplingDiscrete_Samplings = Literal[
@@ -569,4 +568,18 @@ class BlockSparseAttention(DynamicInputs, BaseNode):
         validate_dynamic(self)
 
 
-__getattr__ = submodules_of(__name__)
+from . import (
+    anima,
+    chroma_radiance,
+    flux,
+    hidream,
+    ltxv,
+    minimax,
+    qwen,
+    sensenova,
+    stable_cascade,
+    stable_diffusion,
+    supir,
+    unet,
+    wan,
+)

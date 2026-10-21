@@ -2,7 +2,6 @@ from typing import Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_bool, validate_choice, validate_range
-from ...lazy import submodules_of
 
 
 class LatentBlend(BaseNode):
@@ -280,4 +279,4 @@ class FreSca(BaseNode):
         validate_range("freq_cutoff", self.freq_cutoff, 1, 10_000)
 
 
-__getattr__ = submodules_of(__name__)
+from . import attention_experiments, stable_cascade

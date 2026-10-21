@@ -1,6 +1,5 @@
 from ....base import BaseNode
 from ....validation import validate_range
-from .....lazy import submodules_of
 
 
 class WanImageToVideo(BaseNode):
@@ -181,4 +180,17 @@ class Wan22ImageToVideoLatent(BaseNode):
         validate_range("batch_size", self.batch_size, 1, 4096)
 
 
-__getattr__ = submodules_of(__name__)
+from . import (
+    animate,
+    camera,
+    dancer,
+    fun_control,
+    fun_inpaint,
+    humo,
+    infinite_talk,
+    move,
+    phantom_subject,
+    scail,
+    sound,
+    vace,
+)

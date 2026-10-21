@@ -2,7 +2,6 @@ from typing import Any, Literal, get_args
 
 from ..base import BaseNode
 from ..validation import validate_choice, validate_not_empty, validate_range
-from ...lazy import submodules_of
 from ..dynamic import Choice, Combo, DynamicInputs, Flag, Number, validate_dynamic
 
 
@@ -1073,4 +1072,4 @@ class CreateCameraInfo(DynamicInputs, BaseNode):
         validate_dynamic(self)
 
 
-__getattr__ = submodules_of(__name__)
+from . import mesh, splat, texturing

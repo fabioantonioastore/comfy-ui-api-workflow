@@ -8,7 +8,6 @@ from ..validation import (
     validate_not_empty,
     validate_range,
 )
-from ...lazy import submodules_of
 
 
 class LoadVideoDataSetFromFolder(BaseNode):
@@ -1073,4 +1072,4 @@ class ConcatenateVideo(BaseNode):
         validate_choice("codec", self.codec, CONCATENATEVIDEO_CODECS)
 
 
-__getattr__ = submodules_of(__name__)
+from . import batch, preprocessors, transform

@@ -1,6 +1,5 @@
 from ...base import BaseNode
 from ...validation import validate_range
-from ....lazy import submodules_of
 
 
 class ConditioningTimestepsRange(BaseNode):
@@ -26,4 +25,4 @@ class ConditioningTimestepsRange(BaseNode):
         validate_range("end_percent", self.end_percent, 0.0, 1.0)
 
 
-__getattr__ = submodules_of(__name__)
+from . import clip, combine, cond_pair, cond_single, create, scheduling

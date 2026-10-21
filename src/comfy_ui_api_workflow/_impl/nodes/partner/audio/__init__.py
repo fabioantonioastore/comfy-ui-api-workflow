@@ -1,3 +1,1 @@
-from ....lazy import submodules_of
-
-__getattr__ = submodules_of(__name__)
+from . import elevenlabs, fish_audio
