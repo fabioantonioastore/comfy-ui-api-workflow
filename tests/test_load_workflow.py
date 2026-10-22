@@ -292,10 +292,11 @@ def test_widget_takes_a_link_of_its_own_type_when_loaded():
 
 def test_loaded_node_can_be_rewired():
     workflow = loaded(BASIC_API_EXAMPLE)
+    text = workflow.add_node(CLIPTextEncode, text="blurry", clip=("4", 1))
 
-    workflow.update_node("3", negative=("6", 0))
+    workflow.update_node("3", negative=text.output["CONDITIONING"])
 
-    assert workflow.dependencies("3") == {"4", "5", "6"}
+    assert workflow.dependencies("3") == {"4", "5", "6", text.node_id}
     assert workflow.dependents("7") == set()
 
 
@@ -337,7 +338,7 @@ def test_load_workflow_does_not_change_the_given_workflow():
     given = copy.deepcopy(BASIC_API_EXAMPLE)
 
     workflow = loaded(given)
-    workflow.update_node("3", steps=30, negative=("6", 0))
+    workflow.update_node("3", steps=30, positive=("7", 0), negative=("6", 0))
 
     assert given == BASIC_API_EXAMPLE
 
@@ -732,6 +733,15 @@ def test_rejected_value_keeps_the_node_error_as_cause():
         Workflow().load_workflow(with_inputs("3", steps=0))
 
     assert isinstance(excinfo.value.__cause__, InvalidNodeParameterValue)
+
+
+def test_rejects_a_node_using_the_same_link_for_positive_and_negative():
+    with pytest.raises(InvalidWorkflowError) as excinfo:
+        Workflow().load_workflow(with_inputs("3", negative=["6", 0]))
+
+    assert str(excinfo.value) == (
+        "Cannot load node '3': positive and negative must not use the same input."
+    )
 
 
 def test_rejected_cycle_keeps_the_graph_error_as_cause():

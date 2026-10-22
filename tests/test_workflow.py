@@ -289,14 +289,16 @@ def test_rewiring_an_input_moves_the_dependency():
 def test_dependency_stays_while_another_input_still_uses_the_node():
     workflow = Workflow()
     sources = add_sources(workflow)
-    sampler = workflow.add_node(
-        KSampler,
-        **sampler_inputs(sources, negative=sources.positive.output["CONDITIONING"]),
+    switch = workflow.add_node(
+        ComfySwitchNode,
+        switch=True,
+        on_true=sources.positive.output["CONDITIONING"],
+        on_false=sources.positive.output["CONDITIONING"],
     )
 
-    sampler.negative = sources.negative.output["CONDITIONING"]
+    switch.on_false = sources.negative.output["CONDITIONING"]
 
-    assert sources.positive.node_id in workflow.dependencies(sampler.node_id)
+    assert sources.positive.node_id in workflow.dependencies(switch.node_id)
 
 
 def test_rewiring_that_closes_a_cycle_is_rejected():
@@ -635,6 +637,46 @@ def test_changes_after_update_node_are_still_validated():
     assert sampler.steps == 30
 
 
+def test_add_node_rejects_the_same_link_for_positive_and_negative():
+    workflow = Workflow()
+    sources = add_sources(workflow)
+    before = state(workflow)
+
+    with pytest.raises(InvalidNodeParameterValue):
+        workflow.add_node(
+            KSampler,
+            **sampler_inputs(sources, negative=sources.positive.output["CONDITIONING"]),
+        )
+
+    assert state(workflow) == before
+
+
+def test_update_node_rejects_the_same_link_for_positive_and_negative():
+    workflow = Workflow()
+    sources = add_sources(workflow)
+    sampler = workflow.add_node(KSampler, **sampler_inputs(sources))
+    before = state(workflow)
+
+    with pytest.raises(InvalidNodeParameterValue):
+        workflow.update_node(
+            sampler.node_id, negative=sources.positive.output["CONDITIONING"]
+        )
+
+    assert state(workflow) == before
+
+
+def test_update_node_can_swap_positive_and_negative():
+    workflow = Workflow()
+    sources = add_sources(workflow)
+    sampler = workflow.add_node(KSampler, **sampler_inputs(sources))
+    positive = sources.positive.output["CONDITIONING"]
+    negative = sources.negative.output["CONDITIONING"]
+
+    workflow.update_node(sampler.node_id, positive=negative, negative=positive)
+
+    assert (sampler.positive, sampler.negative) == (negative, positive)
+
+
 def test_update_node_can_connect_an_unset_input():
     workflow = Workflow()
     latent = workflow.add_node(LatentNode)
@@ -759,16 +801,20 @@ def typed_sources(workflow):
     text = workflow.add_node(
         CLIPTextEncode, text="a cat", clip=checkpoint.output["CLIP"]
     )
-    return checkpoint, text, workflow.add_node(EmptyLatentImage)
+    latent = workflow.add_node(EmptyLatentImage)
+    negative = workflow.add_node(
+        CLIPTextEncode, text="blurry", clip=checkpoint.output["CLIP"]
+    )
+    return checkpoint, text, latent, negative
 
 
-def typed_sampler_inputs(checkpoint, text, latent, **overrides):
+def typed_sampler_inputs(checkpoint, text, latent, negative, **overrides):
     return {
         "model": checkpoint.output["MODEL"],
         "sampler_name": "euler",
         "scheduler": "normal",
         "positive": text.output["CONDITIONING"],
-        "negative": text.output["CONDITIONING"],
+        "negative": negative.output["CONDITIONING"],
         "latent_image": latent.output["LATENT"],
         **overrides,
     }
@@ -776,7 +822,7 @@ def typed_sampler_inputs(checkpoint, text, latent, **overrides):
 
 def test_add_node_rejects_a_link_whose_output_type_the_input_does_not_take():
     workflow = Workflow()
-    checkpoint, text, _ = typed_sources(workflow)
+    checkpoint, text, _, _ = typed_sources(workflow)
     before = state(workflow)
 
     with pytest.raises(InvalidLinkError) as excinfo:
@@ -787,7 +833,7 @@ def test_add_node_rejects_a_link_whose_output_type_the_input_does_not_take():
         )
 
     assert str(excinfo.value) == (
-        "Cannot add node 'VAEDecode_3': input 'samples' uses output 0 of node "
+        "Cannot add node 'VAEDecode_4': input 'samples' uses output 0 of node "
         "'CLIPTextEncode_1', which is CONDITIONING, but the input takes LATENT."
     )
     assert state(workflow) == before
@@ -797,13 +843,13 @@ def test_add_node_rejects_a_link_whose_output_type_the_input_does_not_take():
 
 def test_add_node_rejects_a_link_to_an_output_the_source_does_not_have():
     workflow = Workflow()
-    checkpoint, _, _ = typed_sources(workflow)
+    checkpoint, _, _, _ = typed_sources(workflow)
 
     with pytest.raises(InvalidLinkError) as excinfo:
         workflow.add_node(CLIPTextEncode, text="a dog", clip=(checkpoint.node_id, 5))
 
     assert str(excinfo.value) == (
-        "Cannot add node 'CLIPTextEncode_3': input 'clip' uses output 5 of node "
+        "Cannot add node 'CLIPTextEncode_4': input 'clip' uses output 5 of node "
         "'CheckpointLoaderSimple_0', but CheckpointLoaderSimple has no output 5."
     )
 
@@ -823,14 +869,14 @@ def test_widget_input_takes_a_link_of_its_own_type_only():
 
     assert steps.node_id in workflow.dependencies(sampler.node_id)
     assert str(excinfo.value) == (
-        "Cannot add node 'KSampler_5': input 'cfg' uses output 0 of node "
-        "'PrimitiveInt_3', which is INT, but the input takes FLOAT."
+        "Cannot add node 'KSampler_6': input 'cfg' uses output 0 of node "
+        "'PrimitiveInt_4', which is INT, but the input takes FLOAT."
     )
 
 
 def test_any_and_match_type_sockets_take_every_output():
     workflow = Workflow()
-    checkpoint, text, latent = typed_sources(workflow)
+    checkpoint, text, latent, negative = typed_sources(workflow)
 
     switch = workflow.add_node(
         ComfySwitchNode,
@@ -840,7 +886,9 @@ def test_any_and_match_type_sockets_take_every_output():
     )
     sampler = workflow.add_node(
         KSampler,
-        **typed_sampler_inputs(checkpoint, text, latent, model=switch.output["output"]),
+        **typed_sampler_inputs(
+            checkpoint, text, latent, negative, model=switch.output["output"]
+        ),
     )
     preview = workflow.add_node(PreviewAny, source=sampler.output["LATENT"])
 
@@ -850,7 +898,7 @@ def test_any_and_match_type_sockets_take_every_output():
 
 def test_union_socket_takes_each_of_its_types():
     workflow = Workflow()
-    checkpoint, text, _ = typed_sources(workflow)
+    checkpoint, text, _, _ = typed_sources(workflow)
     vae = checkpoint.output["VAE"]
     integer = workflow.add_node(PrimitiveInt, value=24)
     real = workflow.add_node(PrimitiveFloat, value=23.976)
@@ -892,8 +940,8 @@ def test_v1_combo_does_not_take_a_combo_output_as_comfy_ui():
         )
 
     assert str(excinfo.value) == (
-        "Cannot add node 'KSampler_6': input 'sampler_name' uses output 3 of node "
-        "'GetVideoComponents_5', which is COMBO, but the input takes V1 COMBO."
+        "Cannot add node 'KSampler_7': input 'sampler_name' uses output 3 of node "
+        "'GetVideoComponents_6', which is COMBO, but the input takes V1 COMBO."
     )
     assert state(workflow) == before
 
@@ -981,7 +1029,7 @@ def test_nodes_without_socket_types_are_not_type_checked():
 
 def test_update_node_rejects_a_link_whose_output_type_the_input_does_not_take():
     workflow = Workflow()
-    checkpoint, text, _ = typed_sources(workflow)
+    checkpoint, text, _, _ = typed_sources(workflow)
     before = state(workflow)
 
     with pytest.raises(InvalidNodeChangeError) as excinfo:
@@ -998,7 +1046,7 @@ def test_update_node_rejects_a_link_whose_output_type_the_input_does_not_take():
 
 def test_assigning_a_link_to_an_output_the_source_does_not_have_is_rejected():
     workflow = Workflow()
-    checkpoint, text, _ = typed_sources(workflow)
+    checkpoint, text, _, _ = typed_sources(workflow)
 
     with pytest.raises(InvalidNodeChangeError) as excinfo:
         text.clip = (checkpoint.node_id, 3)

@@ -54,6 +54,16 @@ def _signature(node_type: type) -> _Signature:
     )
 
 
+def _check_conditioning(node: "BaseNode") -> None:
+    positive = getattr(node, "positive", None)
+    negative = getattr(node, "negative", None)
+    # A link may be a tuple or a list, so ("a", 0) and ["a", 0] are the same input.
+    if is_link(positive) and is_link(negative) and tuple(positive) == tuple(negative):
+        raise InvalidNodeParameterValue(
+            "positive and negative must not use the same input"
+        )
+
+
 def _tracks_construction(init: Callable[..., None]) -> Callable[..., None]:
     # Only the outermost __init__ marks the node as built, so a subclass that
     # sets inputs after super().__init__() is not checked half built.
@@ -64,6 +74,7 @@ def _tracks_construction(init: Callable[..., None]) -> Callable[..., None]:
             object.__setattr__(self, "_built", False)
         init(self, *args, **kwargs)
         if outermost:
+            _check_conditioning(self)
             object.__setattr__(self, "_built", True)
 
     return wrapper
@@ -178,6 +189,7 @@ class BaseNode:
         # current inputs tells if they are still valid together.
         if _signature(type(self)).rebuildable:
             return type(self)(node_id=self.node_id, **self.inputs())
+        _check_conditioning(self)
         return None
 
     @contextmanager

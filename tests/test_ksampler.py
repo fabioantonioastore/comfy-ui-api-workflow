@@ -182,3 +182,41 @@ def test_change_to_an_invalid_value_keeps_the_previous_value(
 
 def test_invalid_parameter_is_node_exception():
     assert issubclass(InvalidNodeParameterValue, NodeException)
+
+
+@pytest.mark.parametrize(
+    "positive, negative",
+    [
+        (("CLIPTextEncode_1", 0), ("CLIPTextEncode_1", 0)),
+        (("CLIPTextEncode_1", 0), ["CLIPTextEncode_1", 0]),
+    ],
+)
+def test_rejects_the_same_link_for_positive_and_negative(
+    ksampler_inputs, positive, negative
+):
+    with pytest.raises(InvalidNodeParameterValue) as excinfo:
+        make_ksampler(ksampler_inputs, positive=positive, negative=negative)
+
+    assert str(excinfo.value) == "positive and negative must not use the same input"
+
+
+def test_accepts_other_outputs_of_the_same_node_for_positive_and_negative(
+    ksampler_inputs,
+):
+    node = make_ksampler(
+        ksampler_inputs, positive=("Node_1", 0), negative=("Node_1", 1)
+    )
+
+    assert (node.positive, node.negative) == (("Node_1", 0), ("Node_1", 1))
+
+
+def test_change_to_the_same_link_for_positive_and_negative_is_undone(
+    ksampler_inputs,
+):
+    node = make_ksampler(ksampler_inputs)
+    before = inputs_of(node)
+
+    with pytest.raises(InvalidNodeParameterValue):
+        node.negative = node.positive
+
+    assert inputs_of(node) == before

@@ -139,6 +139,22 @@ class BadOutput(Pipeline):
         return output(model)
 
 
+class SharedPrompt(Pipeline):
+    def build(self):
+        model = self.add_node(CheckpointLoaderSimple, ckpt_name="model.safetensors")
+        text = self.add_node(CLIPTextEncode, text="a cat", clip=model.output["CLIP"])
+        latent = self.add_node(EmptyLatentImage, width=512, height=512, batch_size=1)
+        self.add_node(
+            KSampler,
+            model=model.output["MODEL"],
+            sampler_name="euler",
+            scheduler="normal",
+            positive=text.output["CONDITIONING"],
+            negative=text.output["CONDITIONING"],
+            latent_image=latent.output["LATENT"],
+        )
+
+
 def state(workflow):
     return (
         dict(workflow.nodes),
@@ -413,6 +429,14 @@ REJECTED = [
         "Cannot add pipeline 'MissingSource': node 1 of the pipeline (CLIPTextEncode) "
         "was rejected: node: Missing_9 not found. No node of the pipeline was added.",
         id="link-to-missing-node",
+    ),
+    pytest.param(
+        SharedPrompt,
+        {},
+        "Cannot add pipeline 'SharedPrompt': node 4 of the pipeline (KSampler) was "
+        "rejected: positive and negative must not use the same input. "
+        "No node of the pipeline was added.",
+        id="same-link-for-positive-and-negative",
     ),
     pytest.param(
         SwallowedRejection,

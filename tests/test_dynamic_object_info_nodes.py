@@ -76,11 +76,16 @@ def choices_of(entry):
     return options_of(entry).get("options", [])
 
 
-def sample(entry):
+# Each input gets its own link, since positive and negative cannot share one.
+def link_for(name):
+    return (f"Upstream_{name}", 0)
+
+
+def sample(entry, path):
     found = kind(entry)
     options = options_of(entry)
     if found == "link":
-        return LINK
+        return link_for(path)
     if found == "combo":
         return choices_of(entry)[0]
     if found == "server_combo":
@@ -169,7 +174,7 @@ class Expected:
         elif has_default(entry):
             self.sent[path] = sent(options["default"])
         elif required:
-            self.sent[path] = self.needed[path] = sample(entry)
+            self.sent[path] = self.needed[path] = sample(entry, path)
 
     def build(self, node_name):
         values = {**self.choices, **self.needed, **self.given}
@@ -270,7 +275,7 @@ def test_inputs_of_other_branches_are_rejected(node_name, choices, option):
         value = (
             options_of(entry)["options"][0]["key"]
             if entry[0] == COMBO
-            else sample(entry)
+            else sample(entry, sub)
         )
         expected = Expected(node_name, choices, {sub: value})
 

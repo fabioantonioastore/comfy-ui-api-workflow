@@ -64,9 +64,14 @@ def choices(annotation):
     )
 
 
+# Each input gets its own link, since positive and negative cannot share one.
+def link_for(name):
+    return (f"Upstream_{name}", 0)
+
+
 def build(node_type, **values):
     required = {
-        parameter.name: LINK
+        parameter.name: link_for(parameter.name)
         for parameter in parameters(node_type)
         if parameter.default is parameter.empty
     }
@@ -83,7 +88,9 @@ def test_node_class_builds_with_its_defaults(node_type):
     inputs = node.inputs()
     fixed = {
         parameter.name: (
-            LINK if parameter.default is parameter.empty else parameter.default
+            link_for(parameter.name)
+            if parameter.default is parameter.empty
+            else parameter.default
         )
         for parameter in parameters(node_type)
         if parameter.default is not None
@@ -99,7 +106,7 @@ def test_node_class_builds_with_its_defaults(node_type):
 @pytest.mark.parametrize("node_type", NODE_TYPES, ids=class_type)
 def test_every_input_that_takes_a_link_is_sent_as_one(node_type):
     linked = {
-        parameter.name: LINK
+        parameter.name: link_for(parameter.name)
         for parameter in parameters(node_type)
         if (accepts_link(parameter.annotation) or parameter.annotation is Any)
         and parameter.name not in branch_inputs(node_type)
@@ -147,3 +154,18 @@ def test_library_input_with_a_mutable_default_cannot_be_deleted():
 
     assert str(excinfo.value) == "curve cannot be removed because it is not optional"
     assert node.inputs() == before
+
+
+CONDITIONED_NODE_TYPES = [
+    node_type
+    for node_type in NODE_TYPES
+    if {"positive", "negative"} <= set(inspect.signature(node_type).parameters)
+]
+
+
+@pytest.mark.parametrize("node_type", CONDITIONED_NODE_TYPES, ids=class_type)
+def test_positive_and_negative_cannot_use_the_same_link(node_type):
+    with pytest.raises(InvalidNodeParameterValue) as excinfo:
+        build(node_type, positive=LINK, negative=LINK)
+
+    assert str(excinfo.value) == "positive and negative must not use the same input"

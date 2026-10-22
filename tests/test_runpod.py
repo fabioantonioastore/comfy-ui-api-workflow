@@ -212,3 +212,53 @@ def test_combo_output_into_a_v1_combo_is_refused_by_both(runpod):
     assert "which is COMBO, but the input takes V1 COMBO" in str(excinfo.value)
     assert job["status"] == "FAILED"
     assert "received_type(COMBO) mismatch input_type([" in job["error"]
+
+
+def test_comfy_ui_runs_the_shared_conditioning_the_library_refuses(runpod):
+    # ComfyUI has no such rule: only the library refuses it.
+    shared_conditioning = {
+        "1": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": CHECKPOINT},
+        },
+        "2": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "a red apple on a wooden table", "clip": ["1", 1]},
+        },
+        "3": {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": 512, "height": 512, "batch_size": 1},
+        },
+        "4": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["2", 0],
+                "negative": ["2", 0],
+                "latent_image": ["3", 0],
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "seed": 42,
+                "steps": 4,
+                "cfg": 7.0,
+                "denoise": 1.0,
+            },
+        },
+        "5": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["4", 0], "vae": ["1", 2]},
+        },
+        "6": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["5", 0], "filename_prefix": "test"},
+        },
+    }
+
+    with pytest.raises(InvalidWorkflowError) as excinfo:
+        Workflow().load_workflow(shared_conditioning)
+    (png,) = images_of(runpod.run(shared_conditioning))
+
+    assert str(excinfo.value) == (
+        "Cannot load node '4': positive and negative must not use the same input."
+    )
+    assert png_size(png) == (512, 512)

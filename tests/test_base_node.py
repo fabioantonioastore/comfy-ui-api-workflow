@@ -380,6 +380,31 @@ def test_node_whose_constructor_does_not_take_its_inputs_is_not_validated_again(
     assert node.inputs() == {"set_input": 1, "unset_input": 5}
 
 
+class UnrebuiltConditioningNode(BaseNode):
+    __slots__ = ("positive", "negative", "strength")
+    CATEGORY = "test"
+
+    def __init__(self, node_id, positive, negative):
+        super().__init__(node_id=node_id)
+        self.positive = positive
+        self.negative = negative
+        self.strength = 1.0
+
+
+def test_node_that_is_not_rebuilt_rejects_the_same_link_for_positive_and_negative():
+    node = UnrebuiltConditioningNode(
+        node_id="UnrebuiltConditioningNode_0",
+        positive=("Text_1", 0),
+        negative=("Text_2", 0),
+    )
+
+    with pytest.raises(InvalidNodeParameterValue) as excinfo:
+        node.negative = ("Text_1", 0)
+
+    assert str(excinfo.value) == "positive and negative must not use the same input"
+    assert node.negative == ("Text_2", 0)
+
+
 def test_input_deleted_during_construction_is_not_validated():
     node = TemporaryInputNode(node_id="TemporaryInputNode_0")
 

@@ -158,9 +158,14 @@ def attribute_name(node_name, input_name):
     )
 
 
+# Each input gets its own link, since positive and negative cannot share one.
+def link_for(name):
+    return (f"Upstream_{name}", 0)
+
+
 def sample_value(item):
     if item.kind == "link":
-        return LINK
+        return link_for(item.name)
     if item.kind == "combo":
         return item.choices[0]
     if item.kind == "server_combo":
